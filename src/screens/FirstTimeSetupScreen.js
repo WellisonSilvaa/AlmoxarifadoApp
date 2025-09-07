@@ -56,14 +56,14 @@ const FirstTimeSetupScreen = ({ navigation }) => {
     }
   };
 
-//   if (checkingUsers) {
-//     return (
-//       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-//         <ActivityIndicator size="large" color={colors.primary} />
-//         <Text style={{ marginTop: 10 }}>Verificando configuração inicial...</Text>
-//       </View>
-//     );
-//   }
+  // if (checkingUsers) {
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+  //       <ActivityIndicator size="large" color={colors.primary} />
+  //       <Text style={{ marginTop: 10 }}>Verificando configuração inicial...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>

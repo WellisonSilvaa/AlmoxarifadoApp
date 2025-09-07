@@ -105,6 +105,7 @@ const LoginScreen = ({ navigation }) => {
             editable={!loading}
           />
           
+          {/* Botão de Login */}
           <TouchableOpacity 
             style={[globalStyles.button, loading && { backgroundColor: colors.gray }]} 
             onPress={handleLogin}
