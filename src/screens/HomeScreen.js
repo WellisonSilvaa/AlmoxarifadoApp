@@ -72,7 +72,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Cadastrar Funcionários */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.secondary }]}
-                onPress={() => Alert.alert('Funcionalidade', 'Em desenvolvimento')}
+                onPress={() => navigation.navigate('EmployeeForm')}
             >
                 <Text style={globalStyles.buttonText}>Cadastrar Funcionários</Text>
             </TouchableOpacity>

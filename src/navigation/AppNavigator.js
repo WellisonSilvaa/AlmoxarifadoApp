@@ -8,6 +8,7 @@ import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import FirstTimeSetupScreen from '../screens/FirstTimeSetupScreen';
+import EmployeeFormScreen from '../screens/EmployeeFormScreen';
 
 const Stack = createStackNavigator();
 
@@ -35,6 +36,10 @@ const AppNavigator = () => {
           component={FirstTimeSetupScreen} 
           options={{ headerShown: false }}
         />
+        <Stack.Screen 
+        name="EmployeeForm" 
+        component={EmployeeFormScreen} 
+        options={{ title: 'Cadastrar Funcionário' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
