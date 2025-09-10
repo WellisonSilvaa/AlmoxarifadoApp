@@ -9,6 +9,7 @@ import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import FirstTimeSetupScreen from '../screens/FirstTimeSetupScreen';
 import EmployeeFormScreen from '../screens/EmployeeFormScreen';
+import ItemFormScreen from '../screens/ItemFormScreen'; // 👈 NOVO IMPORT
 
 const Stack = createStackNavigator();
 
@@ -39,7 +40,13 @@ const AppNavigator = () => {
         <Stack.Screen 
         name="EmployeeForm" 
         component={EmployeeFormScreen} 
-        options={{ title: 'Cadastrar Funcionário' }} />
+        options={{ title: 'Cadastrar Funcionário' }} 
+        />
+        <Stack.Screen 
+          name="ItemForm" 
+          component={ItemFormScreen} 
+          options={{ title: 'Cadastrar Item' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

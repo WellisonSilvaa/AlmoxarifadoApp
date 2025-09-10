@@ -1,5 +1,14 @@
 {
   "expo": {
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O aplicativo precisa acessar suas fotos para selecionar imagens dos itens.",
+          "cameraPermission": "O aplicativo precisa acessar sua câmera para tirar fotos dos itens."
+        }
+      ]
+    ],
     "name": "AlmoxarifadoApp",
     "slug": "AlmoxarifadoApp",
     "version": "1.0.0",

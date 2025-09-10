@@ -80,7 +80,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Cadastrar Itens */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.warning }]}
-                onPress={() => Alert.alert('Funcionalidade', 'Em desenvolvimento')}
+                onPress={() => navigation.navigate('ItemForm')}
             >
                 <Text style={globalStyles.buttonText}>Cadastrar Itens</Text>
             </TouchableOpacity>

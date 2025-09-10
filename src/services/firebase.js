@@ -3,6 +3,7 @@
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Sua configuração do Firebase (substitua com seus dados reais)
@@ -14,16 +15,22 @@ const firebaseConfig = {
   messagingSenderId: "753285937415",
   appId: "1:753285937415:web:5aa7802006c299498deda2"
 };
+// console.log para debug
+console.log('Firebase config:', {
+  ...firebaseConfig,
+  apiKey: firebaseConfig.apiKey ? 'CONFIGURADA' : 'FALTANDO'
+});
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 
-// Inicializar Authentication com persistência
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
 
-// Inicializar Firestore
 export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Debug: verificar se storage foi inicializado
+console.log('Storage inicializado:', storage ? 'SIM' : 'NÃO');
 
 export default app;
