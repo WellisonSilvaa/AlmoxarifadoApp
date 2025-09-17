@@ -98,10 +98,12 @@ const ItemListScreen = ({ navigation }) => {
             <Text style={{
                 color: item.isActive ? colors.secondary : colors.danger,
                 fontWeight: 'bold',
-                marginTop: 5
+                marginTop: 5,
+                marginBottom: 20
             }}>
                 {item.isActive ? 'ATIVO' : 'INATIVO'}
             </Text>
+            
         </TouchableOpacity>
     );
 
