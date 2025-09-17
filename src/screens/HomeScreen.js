@@ -125,7 +125,13 @@ const HomeScreen = ({ navigation }) => {
             >
                 <Text style={globalStyles.buttonText}>Testar Conexão Firestore</Text>
             </TouchableOpacity>
-
+            {/* Lista de itens */}
+            <TouchableOpacity
+                style={[globalStyles.button, { backgroundColor: colors.primary }]}
+                onPress={() => navigation.navigate('ItemList')}
+            >
+                <Text style={globalStyles.buttonText}>Lista de Itens</Text>
+            </TouchableOpacity>
         </View>
     );
 };

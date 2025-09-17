@@ -61,14 +61,20 @@ const convertToBase64 = async (uri) => {
   }
 };
 
-// Função para exibir imagens
+// Função para tratar URLs de imagens (base64 ou URL normal)
 export const getImageUrl = (imageData) => {
   if (!imageData) return null;
   
+  // Se for string simples (URL ou base64)
   if (typeof imageData === 'string') {
-    return imageData; // URL simples
+    // Verificar se é base64 (começa com data:image)
+    if (imageData.startsWith('data:image')) {
+      return imageData; // Já é base64
+    }
+    return imageData; // URL normal
   }
   
+  // Se for objeto com propriedade isBase64
   if (imageData.isBase64) {
     return imageData.url; // Base64
   }

@@ -9,7 +9,8 @@ import HomeScreen from '../screens/HomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import FirstTimeSetupScreen from '../screens/FirstTimeSetupScreen';
 import EmployeeFormScreen from '../screens/EmployeeFormScreen';
-import ItemFormScreen from '../screens/ItemFormScreen'; // 👈 NOVO IMPORT
+import ItemFormScreen from '../screens/ItemFormScreen';
+import ItemListScreen from '../screens/ItemListScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,35 +18,40 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
           options={{ title: 'Painel Principal' }}
         />
-        <Stack.Screen 
-          name="Register" 
-          component={RegisterScreen} 
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
           options={{ title: 'Cadastrar Administrador' }}
         />
-        <Stack.Screen 
-          name="FirstTimeSetup" 
-          component={FirstTimeSetupScreen} 
+        <Stack.Screen
+          name="FirstTimeSetup"
+          component={FirstTimeSetupScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-        name="EmployeeForm" 
-        component={EmployeeFormScreen} 
-        options={{ title: 'Cadastrar Funcionário' }} 
+        <Stack.Screen
+          name="EmployeeForm"
+          component={EmployeeFormScreen}
+          options={{ title: 'Cadastrar Funcionário' }}
         />
-        <Stack.Screen 
-          name="ItemForm" 
-          component={ItemFormScreen} 
+        <Stack.Screen
+          name="ItemForm"
+          component={ItemFormScreen}
           options={{ title: 'Cadastrar Item' }}
+        />
+        <Stack.Screen
+          name='ItemList'
+          component={ItemListScreen}
+          options={{ title: 'Lista de itens '}}
         />
       </Stack.Navigator>
     </NavigationContainer>

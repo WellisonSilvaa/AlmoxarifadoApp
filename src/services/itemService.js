@@ -1,9 +1,9 @@
 import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    orderBy
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy
 } from 'firebase/firestore';
 import { db } from './firebase'
 import { auth } from './firebase';
@@ -12,16 +12,16 @@ import { auth } from './firebase';
 export const createItem = async (itemData) => {
   try {
     const user = auth.currentUser;
-    
+
     if (!user) {
       return { success: false, error: "Usuário não autenticado" };
     }
 
     // Ajustar limite para base64 (1MB = 1.000.000 bytes)
     if (itemData.photoUrl && itemData.photoUrl.length > 1000000) {
-      return { 
-        success: false, 
-        error: "Imagem muito grande. Tente uma imagem menor." 
+      return {
+        success: false,
+        error: "Imagem muito grande. Tente uma imagem menor."
       };
     }
 
@@ -34,41 +34,97 @@ export const createItem = async (itemData) => {
       isActive: true
     });
 
-    return { 
-      success: true, 
-      id: docRef.id, 
-      message: "Item cadastrado com sucesso!" 
+    return {
+      success: true,
+      id: docRef.id,
+      message: "Item cadastrado com sucesso!"
     };
   } catch (error) {
     console.error("Erro ao criar item:", error);
-    
+
     // Mensagem mais específica sobre permissões
     if (error.code === 'permission-denied') {
       return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
     }
-    
+
     return { success: false, error: "Erro ao cadastrar item." };
   }
 };
 
 //Buscar todos os itens
 
-export const getItem = async () => {
-    try {
-        const q = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const items = [];
+export const getItems = async () => {
+  try {
+    const q = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const items = [];
 
-        querySnapshot.forEach((doc) => {
-            items.push({ id: doc.id, ...doc.data() });
-        });
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      console.log('Dados brutos do documento:', data);
 
-        return { succes: true, data: items};
+      items.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt
+          ? (data.createdAt.toDate 
+            ? data.createdAt.toDate() 
+            : new Date(data.createdAt))
+          : new Date() // Fallback
+      });
+    });
 
-    } catch (error) {
-        console.error("Erro ao buscar items", error);
-        return { succes: false, error: "Erro ao carregar items"};
+    return { success: true, data: items };
+
+  } catch (error) {
+    console.error("Erro detalhado ao buscar itens:", error);
+    console.error("Código do erro:", error.code);
+    console.error("Mensagem do erro:", error.message);
+    return { success: false, error: "Erro ao carregar items" };
+  }
+};
+
+// Buscar item por ID
+export const getItemById = async (id) => {
+  try {
+    const docRef = doc(db, 'items', id);
+    const docSnap = await getDocs(docRef);
+
+    if (docSnap.exists()) {
+      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+    } else {
+      return { success: false, error: "Item não encontrado" };
     }
+  } catch (error) {
+    console.error("Erro ao buscar item:", error);
+    return { success: false, error: "Erro ao carregar item." };
+  }
+};
+
+// Atualizar item
+export const updateItem = async (id, itemData) => {
+  try {
+    const itemRef = doc(db, 'items', id);
+    await updateDoc(itemRef, itemData);
+
+    return { success: true, message: "Item atualizado com sucesso!" };
+  } catch (error) {
+    console.error("Erro ao atualizar item:", error);
+    return { success: false, error: "Erro ao atualizar item." };
+  }
+};
+
+// Deletar item (desativar)
+export const deleteItem = async (id) => {
+  try {
+    const itemRef = doc(db, 'items', id);
+    await updateDoc(itemRef, { isActive: false });
+
+    return { success: true, message: "Item desativado com sucesso!" };
+  } catch (error) {
+    console.error("Erro ao desativar item:", error);
+    return { success: false, error: "Erro ao desativar item." };
+  }
 };
 
 
