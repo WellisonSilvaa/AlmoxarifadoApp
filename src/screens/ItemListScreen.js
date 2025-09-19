@@ -53,7 +53,7 @@ const ItemListScreen = ({ navigation }) => {
     const renderItem = ({ item }) => (
         <TouchableOpacity
             style={globalStyles.card}
-        //onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+        onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
         >
             {/* Imagem do Item */}
             {item.photoUrl && (
@@ -152,7 +152,7 @@ const ItemListScreen = ({ navigation }) => {
             />
 
             <TouchableOpacity
-                style={globalStyles.button}
+                style={[globalStyles.button, { marginBottom: 50 }]}
                 onPress={() => navigation.navigate('ItemForm')}
             >
                 <Text style={globalStyles.buttonText}>➕ Novo Item</Text>

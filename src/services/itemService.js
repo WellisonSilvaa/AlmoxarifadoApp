@@ -1,6 +1,9 @@
 import {
   collection,
   addDoc,
+  doc,
+  updateDoc,
+  getDoc,
   getDocs,
   query,
   orderBy
@@ -67,8 +70,8 @@ export const getItems = async () => {
         id: doc.id,
         ...data,
         createdAt: data.createdAt
-          ? (data.createdAt.toDate 
-            ? data.createdAt.toDate() 
+          ? (data.createdAt.toDate
+            ? data.createdAt.toDate()
             : new Date(data.createdAt))
           : new Date() // Fallback
       });
@@ -87,11 +90,21 @@ export const getItems = async () => {
 // Buscar item por ID
 export const getItemById = async (id) => {
   try {
-    const docRef = doc(db, 'items', id);
-    const docSnap = await getDocs(docRef);
+    const itemRef = doc(db, 'items', id);
+    const docSnap = await getDoc(itemRef);
 
     if (docSnap.exists()) {
-      return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+      const data = docSnap.data();
+      return {
+        success: true,
+        data: {
+          id: docSnap.id,
+          ...data,
+          createdAt: data.createdAt
+            ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
+            : new Date()
+        }
+      };
     } else {
       return { success: false, error: "Item não encontrado" };
     }
@@ -104,12 +117,31 @@ export const getItemById = async (id) => {
 // Atualizar item
 export const updateItem = async (id, itemData) => {
   try {
-    const itemRef = doc(db, 'items', id);
-    await updateDoc(itemRef, itemData);
+    console.log('Atualizando item', id, itemData);
 
-    return { success: true, message: "Item atualizado com sucesso!" };
+    const itemRef = doc(db, 'items', id);
+
+    const updateData = {
+      name: itemData.name.trim(),
+      description: itemData.description?.trim() || '',
+      photoUrl: itemData.photoUrl || '',
+      isActive: itemData.isActive !== undefined ? itemData.isActive : true,
+      updatedAt: new Date() // 👈 Adicionar campo de atualização
+    };
+
+    await updateDoc(itemRef, updateData);
+
+    return {
+      success: true,
+      message: "Item atualizado com sucesso!"
+    };
   } catch (error) {
     console.error("Erro ao atualizar item:", error);
+
+   if (error.code === 'permission-denied') {
+      return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
+    }
+    
     return { success: false, error: "Erro ao atualizar item." };
   }
 };
