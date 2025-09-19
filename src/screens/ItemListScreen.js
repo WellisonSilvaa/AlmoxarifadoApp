@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -12,11 +12,13 @@ import {
 import { globalStyles, colors } from '../styles/global';
 import { getItems } from '../services/itemService';
 import { getImageUrl } from '../utils/storageUtils';
+import { useFocusEffect } from '@react-navigation/native';
 
 const ItemListScreen = ({ navigation }) => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [showInactive, setShowInactive] = useState(false);
 
     const loadItems = async () => {
         try {
@@ -41,9 +43,15 @@ const ItemListScreen = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-        loadItems();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadItems();
+        }, [])
+    );
+
+    // useEffect(() => {
+    //     loadItems();
+    // }, []);
 
     const onRefresh = () => {
         setRefreshing(true);

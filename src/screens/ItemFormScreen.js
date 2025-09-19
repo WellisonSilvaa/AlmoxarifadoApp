@@ -233,7 +233,7 @@ const ItemFormScreen = ({ navigation }) => {
 
                 <TouchableOpacity
                     style={[globalStyles.button, { backgroundColor: colors.danger }]}
-                    onPress={() => navigation.goBack()}
+                    onPress={() => navigation.navigate('ItemList')}
                     disabled={loading}
                 >
                     <Text style={globalStyles.buttonText}>Cancelar</Text>

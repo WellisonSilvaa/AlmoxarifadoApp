@@ -6,7 +6,8 @@ import {
   getDoc,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  where
 } from 'firebase/firestore';
 import { db } from './firebase'
 import { auth } from './firebase';
@@ -58,7 +59,11 @@ export const createItem = async (itemData) => {
 
 export const getItems = async () => {
   try {
-    const q = query(collection(db, 'items'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(db, 'items'),
+      where('isActive', '==', true), 
+      orderBy('createdAt', 'desc')
+    );
     const querySnapshot = await getDocs(q);
     const items = [];
 
@@ -138,10 +143,10 @@ export const updateItem = async (id, itemData) => {
   } catch (error) {
     console.error("Erro ao atualizar item:", error);
 
-   if (error.code === 'permission-denied') {
+    if (error.code === 'permission-denied') {
       return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
     }
-    
+
     return { success: false, error: "Erro ao atualizar item." };
   }
 };
@@ -150,11 +155,19 @@ export const updateItem = async (id, itemData) => {
 export const deleteItem = async (id) => {
   try {
     const itemRef = doc(db, 'items', id);
-    await updateDoc(itemRef, { isActive: false });
+    await updateDoc(itemRef, {
+      isActive: false,
+      deletedAt: new Date()
+    });
 
     return { success: true, message: "Item desativado com sucesso!" };
   } catch (error) {
     console.error("Erro ao desativar item:", error);
+
+    if (error.code === 'permission-denied') {
+      return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
+    }
+
     return { success: false, error: "Erro ao desativar item." };
   }
 };

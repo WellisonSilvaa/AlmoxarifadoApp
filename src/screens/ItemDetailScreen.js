@@ -11,6 +11,7 @@ import {
 import { globalStyles, colors } from '../styles/global';
 import { getItemById } from '../services/itemService';
 import { getImageUrl } from '../utils/storageUtils';
+import { deleteItem } from '../services/itemService';
 
 const ItemDetailScreen = ({ route, navigation }) => {
   const { itemId } = route.params;
@@ -61,6 +62,44 @@ const ItemDetailScreen = ({ route, navigation }) => {
       </View>
     );
   }
+
+  // FUNÇÃO PARA EXCLUSÃO
+  const handleDeleteItem = async () => {
+  Alert.alert(
+    "Confirmar Exclusão",
+    "Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.",
+    [
+      {
+        text: "Cancelar",
+        style: "cancel"
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const result = await deleteItem(item.id);
+            
+            if (result.success) {
+              Alert.alert("Sucesso", result.message, [
+                { 
+                  text: "OK", 
+                  onPress: () => navigation.navigate('ItemList') // Volta para lista
+                }
+              ]);
+            } else {
+              Alert.alert("Erro", result.error);
+            }
+          } catch (error) {
+            Alert.alert("Erro", "Não foi possível excluir o item");
+          }
+        }
+      }
+    ]
+  );
+};
+
+
 
   return (
     <ScrollView contentContainerStyle={globalStyles.container}>
@@ -149,7 +188,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
 
       <TouchableOpacity 
         style={[globalStyles.button, { backgroundColor: colors.danger }]}
-        onPress={() => {/* Função para deletar */}}
+        onPress={handleDeleteItem}
       >
         <Text style={globalStyles.buttonText}>🗑️ Excluir Item</Text>
       </TouchableOpacity>
