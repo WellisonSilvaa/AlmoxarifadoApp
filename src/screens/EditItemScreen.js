@@ -114,7 +114,7 @@ const EditItemScreen = ({ route, navigation }) => {
 
       if (result.success) {
         Alert.alert('Sucesso', result.message, [
-          { text: 'OK', onPress: () => navigation.navigate('ItemList') }
+          { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       } else {
         Alert.alert('Erro', result.error);
@@ -221,7 +221,7 @@ const EditItemScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={[globalStyles.button, { backgroundColor: colors.danger }]}
-          onPress={() => navigation.navigate('ItemList')}
+          onPress={() => navigation.goBack()}
           disabled={saving}
         >
           <Text style={globalStyles.buttonText}>❌ Cancelar</Text>
