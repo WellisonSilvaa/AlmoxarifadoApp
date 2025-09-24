@@ -87,7 +87,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
                 Alert.alert("Sucesso", result.message, [
                   {
                     text: "OK",
-                    onPress: () => navigation.navigate('ItemList') // Volta para lista
+                    onPress: () => navigation.goBack()
                   }
                 ]);
               } else {

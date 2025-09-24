@@ -97,7 +97,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Movimentações */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.primary }]}
-                onPress={() => Alert.alert('Funcionalidade', 'Em desenvolvimento')}
+                onPress={() => navigation.navigate('Movements')}
             >
                 <Text style={globalStyles.buttonText}>Movimentações</Text>
             </TouchableOpacity>
