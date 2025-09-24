@@ -13,6 +13,8 @@ import ItemFormScreen from '../screens/ItemFormScreen';
 import ItemListScreen from '../screens/ItemListScreen';
 import ItemDetailScreen from '../screens/ItemDetailScreen';
 import EditItemScreen from '../screens/EditItemScreen';
+import TruckFormScreen from '../screens/TruckFormScreen';
+import TruckListScreen from '../screens/TruckListScreen';
 
 const Stack = createStackNavigator();
 
@@ -64,6 +66,16 @@ const AppNavigator = () => {
           name='EditItem'
           component={EditItemScreen}
           options={{ title: 'Editar item '}}
+        />
+        <Stack.Screen
+          name='TruckForm'
+          component={TruckFormScreen}
+          options={{ title: 'Cadastrar carreta' }}
+        />
+        <Stack.Screen
+          name='TruckList'
+          component={TruckListScreen}
+          options={{ title: 'Lista de carretas' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

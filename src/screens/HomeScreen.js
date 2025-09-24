@@ -88,7 +88,7 @@ const HomeScreen = ({ navigation }) => {
             {/* Cadastrar Carretas */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.dark }]}
-                onPress={() => Alert.alert('Funcionalidade', 'Em desenvolvimento')}
+                onPress={() => navigation.navigate('TruckForm')}
             >
                 <Text style={globalStyles.buttonText}>Cadastrar Carretas</Text>
             </TouchableOpacity>
@@ -132,6 +132,14 @@ const HomeScreen = ({ navigation }) => {
             >
                 <Text style={globalStyles.buttonText}>Lista de Itens</Text>
             </TouchableOpacity>
+            {/* Lista de carretas */}
+            <TouchableOpacity
+                style={[globalStyles.button, { backgroundColor: colors.dark }]}
+                onPress={() => navigation.navigate('TruckList')}
+            >
+                <Text style={globalStyles.buttonText}>Lista de Carretas</Text>
+            </TouchableOpacity>
+
         </View>
     );
 };
