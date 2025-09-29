@@ -102,6 +102,14 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={globalStyles.buttonText}>Movimentações</Text>
             </TouchableOpacity>
 
+            {/* Histórico de Movimentações */}
+            <TouchableOpacity
+                style={[globalStyles.button, { backgroundColor: colors.dark }]}
+                onPress={() => navigation.navigate('MovementList')}
+            >
+                <Text style={globalStyles.buttonText}>📋 Hostórico de movimentações</Text>
+            </TouchableOpacity>
+
             {/* Sair do Sistema - Logout */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.danger, marginTop: 30 }]}

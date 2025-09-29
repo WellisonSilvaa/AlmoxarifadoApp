@@ -16,6 +16,7 @@ import EditItemScreen from '../screens/EditItemScreen';
 import TruckFormScreen from '../screens/TruckFormScreen';
 import TruckListScreen from '../screens/TruckListScreen';
 import MovementScreen from '../screens/MovementScreen';
+import MovementListScreen from '../screens/MovementListScreen';
 
 const Stack = createStackNavigator();
 
@@ -82,6 +83,11 @@ const AppNavigator = () => {
           name='Movements'
           component={MovementScreen}
           options={{ title: 'Movimentações' }}
+        />
+        <Stack.Screen
+          name='MovementList'
+          component={MovementListScreen}
+          options={{ title: 'Histórico de movimentações' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
