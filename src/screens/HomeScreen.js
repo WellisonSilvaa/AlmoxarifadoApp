@@ -110,6 +110,14 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={globalStyles.buttonText}>📋 Hostórico de movimentações</Text>
             </TouchableOpacity>
 
+             {/* Relatório de Estoque */}
+            <TouchableOpacity
+                style={[globalStyles.button, { backgroundColor: colors.dark }]}
+                onPress={() => navigation.navigate('StockReport')}
+            >
+                <Text style={globalStyles.buttonText}>📊 Relatório de Estoque</Text>
+            </TouchableOpacity>
+
             {/* Sair do Sistema - Logout */}
             <TouchableOpacity
                 style={[globalStyles.button, { backgroundColor: colors.danger, marginTop: 30 }]}

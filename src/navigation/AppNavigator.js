@@ -17,6 +17,8 @@ import TruckFormScreen from '../screens/TruckFormScreen';
 import TruckListScreen from '../screens/TruckListScreen';
 import MovementScreen from '../screens/MovementScreen';
 import MovementListScreen from '../screens/MovementListScreen';
+import MovementDetailScreen from '../screens/MovementDetailScreen';
+import StockReportScreen from '../screens/StockReportScreen';
 
 const Stack = createStackNavigator();
 
@@ -88,6 +90,16 @@ const AppNavigator = () => {
           name='MovementList'
           component={MovementListScreen}
           options={{ title: 'Histórico de movimentações' }}
+        />
+        <Stack.Screen
+          name='MovementDetail'
+          component={MovementDetailScreen}
+          options={{ title: 'Detalhes da movimentação' }}
+        />
+        <Stack.Screen
+          name='StockReport'
+          component={StockReportScreen}
+          options={{ title: 'Relatório de Estoque' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

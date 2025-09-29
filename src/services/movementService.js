@@ -1,21 +1,61 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
+import {
+  collection,
+  addDoc,
+  getDocs,
+  doc,
   updateDoc,
   query,
   orderBy,
-  where
+  where,
+  getDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { auth } from './firebase';
+//import { updateItemStock } from './stockService';
+
+const updateStockAfterMovement = async (itemId) => {
+  try {
+    console.log('Atualizando estoque do item:', itemId);
+    
+    // Buscar todas as movimentações do item
+    const q = query(
+      collection(db, 'movements'), 
+      where('itemId', '==', itemId),
+      where('isActive', '==', true)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    let stock = 0;
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.type === 'entry') {
+        stock += data.quantity;
+      } else if (data.type === 'exit') {
+        stock -= data.quantity;
+      }
+    });
+
+    // Atualizar o campo currentStock no item
+    const itemRef = doc(db, 'items', itemId);
+    await updateDoc(itemRef, {
+      currentStock: stock,
+      lastStockUpdate: new Date()
+    });
+
+    console.log('Estoque atualizado para:', stock);
+    return { success: true, stock };
+  } catch (error) {
+    console.error("Erro ao atualizar estoque:", error);
+    return { success: false, error: "Erro ao atualizar estoque." };
+  }
+};
 
 // Criar nova movimentação
 export const createMovement = async (movementData) => {
   try {
     const user = auth.currentUser;
-    
+
     if (!user) {
       return { success: false, error: "Usuário não autenticado" };
     }
@@ -53,10 +93,17 @@ export const createMovement = async (movementData) => {
       isActive: true
     });
 
+    console.log('Atualizando estoque do item:', movementData.itemId);
+    const stockResult = await updateStockAfterMovement(movementData.itemId);
+    
+    if (!stockResult.success) {
+      console.warn('Aviso: Movimentação criada, mas estoque não foi atualizado:', stockResult.error);
+    }
+
     return { 
       success: true, 
       id: docRef.id, 
-      message: `Movimentação de ${movementData.type === 'entry' ? 'entrada' : 'saída'} registrada com sucesso!` 
+      message: `Movimentação de ${movementData.type === 'entry' ? 'entrada' : 'saída'} registrada com sucesso!${stockResult.success ? ' Estoque atualizado.' : ' (Aviso: estoque não atualizado)'}` 
     };
   } catch (error) {
     console.error("Erro ao criar movimentação:", error);
@@ -68,25 +115,25 @@ export const createMovement = async (movementData) => {
 export const getMovements = async () => {
   try {
     const q = query(
-      collection(db, 'movements'), 
+      collection(db, 'movements'),
       where('isActive', '==', true),
       orderBy('date', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     const movements = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       movements.push({
         id: doc.id,
         ...data,
-        date: data.date 
+        date: data.date
           ? (data.date.toDate ? data.date.toDate() : new Date(data.date))
           : new Date()
       });
     });
-    
+
     return { success: true, data: movements };
   } catch (error) {
     console.error("Erro ao buscar movimentações:", error);
@@ -94,30 +141,62 @@ export const getMovements = async () => {
   }
 };
 
+// Buscar movimentação por ID
+export const getMovementById = async (id) => {
+  try {
+    console.log('Buscando movimentação por ID:', id);
+
+    const movementRef = doc(db, 'movements', id);
+    const docSnap = await getDoc(movementRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log('Movimentação encontrada:', data);
+
+      return {
+        success: true,
+        data: {
+          id: docSnap.id,
+          ...data,
+          date: data.date
+            ? (data.date.toDate ? data.date.toDate() : new Date(data.date))
+            : new Date()
+        }
+      };
+    } else {
+      console.log('Movimentação não encontrada');
+      return { success: false, error: "Movimentação não encontrada" };
+    }
+  } catch (error) {
+    console.error("Erro ao buscar movimentação:", error);
+    return { success: false, error: "Erro ao carregar movimentação." };
+  }
+};
+
 // Buscar movimentações por item
 export const getMovementsByItem = async (itemId) => {
   try {
     const q = query(
-      collection(db, 'movements'), 
+      collection(db, 'movements'),
       where('itemId', '==', itemId),
       where('isActive', '==', true),
       orderBy('date', 'desc')
     );
-    
+
     const querySnapshot = await getDocs(q);
     const movements = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       movements.push({
         id: doc.id,
         ...data,
-        date: data.date 
+        date: data.date
           ? (data.date.toDate ? data.date.toDate() : new Date(data.date))
           : new Date()
       });
     });
-    
+
     return { success: true, data: movements };
   } catch (error) {
     console.error("Erro ao buscar movimentações do item:", error);

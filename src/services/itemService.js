@@ -12,6 +12,9 @@ import {
 import { db } from './firebase'
 import { auth } from './firebase';
 
+//import { calculateCurrentStock } from './stockService';
+import { calculateStockFromMovements, needsRestock } from './stockCalculator';
+
 // Criar novo item 
 export const createItem = async (itemData) => {
   try {
@@ -33,6 +36,8 @@ export const createItem = async (itemData) => {
       name: itemData.name.trim(),
       description: itemData.description?.trim() || '',
       photoUrl: itemData.photoUrl || '',
+      minStock: itemData.minStock || 0,
+      currentStock: itemData.currentStock || 0,
       createdAt: new Date(),
       createdBy: user.uid,
       isActive: true
@@ -60,35 +65,51 @@ export const createItem = async (itemData) => {
 export const getItems = async () => {
   try {
     const q = query(
-      collection(db, 'items'),
-      where('isActive', '==', true), 
+      collection(db, 'items'), 
+      where('isActive', '==', true),
       orderBy('createdAt', 'desc')
     );
+    
     const querySnapshot = await getDocs(q);
     const items = [];
-
-    querySnapshot.forEach((doc) => {
+    
+    for (const doc of querySnapshot.docs) {
       const data = doc.data();
-      console.log('Dados brutos do documento:', data);
-
+      
+      // 👇 CALCULAR ESTOQUE DIRETAMENTE
+      const movementsQuery = query(
+        collection(db, 'movements'), 
+        where('itemId', '==', doc.id),
+        where('isActive', '==', true)
+      );
+      
+      const movementsSnapshot = await getDocs(movementsQuery);
+      let currentStock = 0;
+      
+      movementsSnapshot.forEach(movementDoc => {
+        const movementData = movementDoc.data();
+        if (movementData.type === 'entry') {
+          currentStock += movementData.quantity;
+        } else if (movementData.type === 'exit') {
+          currentStock -= movementData.quantity;
+        }
+      });
+      
       items.push({
         id: doc.id,
         ...data,
-        createdAt: data.createdAt
-          ? (data.createdAt.toDate
-            ? data.createdAt.toDate()
-            : new Date(data.createdAt))
-          : new Date() // Fallback
+        currentStock: currentStock,
+        needsRestock: needsRestock(currentStock, data.minStock || 0),
+        createdAt: data.createdAt 
+          ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
+          : new Date()
       });
-    });
+    }
 
     return { success: true, data: items };
-
   } catch (error) {
     console.error("Erro detalhado ao buscar itens:", error);
-    console.error("Código do erro:", error.code);
-    console.error("Mensagem do erro:", error.message);
-    return { success: false, error: "Erro ao carregar items" };
+    return { success: false, error: "Erro ao carregar itens." };
   }
 };
 
