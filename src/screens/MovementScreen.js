@@ -16,14 +16,15 @@ import { auth } from '../services/firebase'; // 👈 IMPORTAR AUTH
 
 const MovementScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
-  
+  const [currentStock, setCurrentStock] = useState(0);
+
   // Estados do formulário
   const [movementType, setMovementType] = useState('exit');
   const [selectedItem, setSelectedItem] = useState('');
   const [quantity, setQuantity] = useState('');
   const [selectedTruck, setSelectedTruck] = useState('');
   const [notes, setNotes] = useState('');
-  
+
   // Listas de dados
   const [items, setItems] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -33,10 +34,48 @@ const MovementScreen = ({ navigation }) => {
   const currentUser = auth.currentUser;
   const responsible = currentUser?.email || 'Usuário Logado'; // 👈 RESPONSÁVEL AUTOMÁTICO
 
-  // Carregar dados iniciais
+  const loadItemStock = async (itemId) => {
+    try {
+      const stockQuery = query(
+        collection(db, 'movements'),
+        where('itemId', '==', itemId),
+        where('isActive', '==', true)
+      );
+
+      const movementsSnapshot = await getDocs(stockQuery);
+      let stock = 0;
+
+      movementsSnapshot.forEach(doc => {
+        const movement = doc.data();
+        if (movement.type === 'entry') {
+          stock += movement.quantity;
+        } else if (movement.type === 'exit') {
+          stock -= movement.quantity;
+        }
+      });
+
+      setCurrentStock(stock);
+    } catch (error) {
+      console.error('Erro ao carregar estoque:', error);
+      setCurrentStock(0);
+    }
+  };
+
+
+
+  // // Carregar dados iniciais
+  // useEffect(() => {
+  //   loadInitialData();
+  // }, []);
+
+  // Atualizar quando item for selecionado
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    if (selectedItem) {
+      loadItemStock(selectedItem);
+    } else {
+      setCurrentStock(0);
+    }
+  }, [selectedItem]);
 
   const loadInitialData = async () => {
     try {
@@ -47,7 +86,7 @@ const MovementScreen = ({ navigation }) => {
 
       if (itemsResult.success) setItems(itemsResult.data);
       if (trucksResult.success) setTrucks(trucksResult.data);
-      
+
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível carregar os dados');
     } finally {
@@ -55,6 +94,9 @@ const MovementScreen = ({ navigation }) => {
     }
   };
 
+  // 
+
+  // Adicionar validação no handleSubmit
   const validateForm = () => {
     if (!selectedItem) {
       Alert.alert('Erro', 'Por favor, selecione um item');
@@ -66,9 +108,24 @@ const MovementScreen = ({ navigation }) => {
       return false;
     }
 
+    if (!responsible.trim()) {
+      Alert.alert('Erro', 'Por favor, informe o responsável');
+      return false;
+    }
+
     // Para saídas, validar carreta
     if (movementType === 'exit' && !selectedTruck) {
       Alert.alert('Erro', 'Para saída, a carreta é obrigatória');
+      return false;
+    }
+
+    // 👇 VALIDAÇÃO DE ESTOQUE NO FRONTEND TAMBÉM
+    if (movementType === 'exit' && currentStock < parseInt(quantity)) {
+      Alert.alert(
+        'Estoque Insuficiente',
+        `Não é possível realizar a saída!\n\nEstoque disponível: ${currentStock} unidades\nQuantidade solicitada: ${quantity} unidades\n\nFaltam: ${parseInt(quantity) - currentStock} unidades`,
+        [{ text: 'Entendi' }]
+      );
       return false;
     }
 
@@ -113,8 +170,8 @@ const MovementScreen = ({ navigation }) => {
 
       if (result.success) {
         Alert.alert('Sucesso', result.message, [
-          { 
-            text: 'OK', 
+          {
+            text: 'OK',
             onPress: () => {
               // Limpar formulário
               setSelectedItem('');
@@ -174,7 +231,7 @@ const MovementScreen = ({ navigation }) => {
               📥 Entrada
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.typeButton,
@@ -211,6 +268,24 @@ const MovementScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Mostrar estoque atual quando item for selecionado */}
+        {selectedItem && (
+          <View style={styles.stockInfo}>
+            <Text style={styles.stockLabel}>Estoque Atual:</Text>
+            <Text style={[
+              styles.stockValue,
+              { color: movementType === 'exit' && currentStock < parseInt(quantity || 0) ? colors.danger : colors.secondary }
+            ]}>
+              {currentStock} unidades
+            </Text>
+            {movementType === 'exit' && currentStock < parseInt(quantity || 0) && (
+              <Text style={styles.stockWarning}>
+                ⚠️ Estoque insuficiente para esta saída
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Quantidade */}
         <Text style={{ fontWeight: 'bold', marginBottom: 5, marginTop: 15 }}>Quantidade *</Text>
@@ -278,10 +353,10 @@ const MovementScreen = ({ navigation }) => {
           )}
         </TouchableOpacity>
 
-        <Text style={{ 
-          marginTop: 20, 
-          color: colors.gray, 
-          fontSize: 12, 
+        <Text style={{
+          marginTop: 20,
+          color: colors.gray,
+          fontSize: 12,
           fontStyle: 'italic',
           textAlign: 'center'
         }}>
@@ -340,6 +415,29 @@ const styles = {
     backgroundColor: colors.primary,
     borderRadius: 5,
   },
+  stockInfo: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: colors.light,
+  padding: 10,
+  borderRadius: 8,
+  marginBottom: 15,
+},
+stockLabel: {
+  fontWeight: 'bold',
+  marginRight: 5,
+  color: colors.dark,
+},
+stockValue: {
+  fontWeight: 'bold',
+  fontSize: 16,
+},
+stockWarning: {
+  color: colors.danger,
+  fontSize: 12,
+  marginLeft: 'auto',
+  fontWeight: 'bold',
+}
 };
 
 export default MovementScreen;

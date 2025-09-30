@@ -55,7 +55,7 @@ const updateStockAfterMovement = async (itemId) => {
 export const createMovement = async (movementData) => {
   try {
     const user = auth.currentUser;
-
+    
     if (!user) {
       return { success: false, error: "Usuário não autenticado" };
     }
@@ -78,6 +78,45 @@ export const createMovement = async (movementData) => {
       return { success: false, error: "Para saída, a carreta é obrigatória" };
     }
 
+    // 👇 VALIDAÇÃO CRÍTICA: VERIFICAR ESTOQUE PARA SAÍDAS
+    if (movementData.type === 'exit') {
+      console.log('🔍 Validando estoque para saída...');
+      
+      // Buscar estoque atual do item
+      const stockQuery = query(
+        collection(db, 'movements'), 
+        where('itemId', '==', movementData.itemId),
+        where('isActive', '==', true)
+      );
+      
+      const movementsSnapshot = await getDocs(stockQuery);
+      let currentStock = 0;
+      
+      // Calcular estoque atual
+      movementsSnapshot.forEach(doc => {
+        const movement = doc.data();
+        if (movement.type === 'entry') {
+          currentStock += movement.quantity;
+        } else if (movement.type === 'exit') {
+          currentStock -= movement.quantity;
+        }
+      });
+      
+      console.log('📊 Estoque atual:', currentStock, 'Quantidade solicitada:', movementData.quantity);
+      
+      // Verificar se há estoque suficiente
+      if (currentStock < movementData.quantity) {
+        const falta = movementData.quantity - currentStock;
+        return { 
+          success: false, 
+          error: `Estoque insuficiente! Disponível: ${currentStock} unidades. Faltam: ${falta} unidades.` 
+        };
+      }
+      
+      console.log('✅ Estoque validado - Saída permitida');
+    }
+
+    // 👇 CRIAR MOVIMENTAÇÃO (se passou na validação)
     const docRef = await addDoc(collection(db, 'movements'), {
       type: movementData.type,
       itemId: movementData.itemId,
@@ -93,6 +132,7 @@ export const createMovement = async (movementData) => {
       isActive: true
     });
 
+    // 👇 ATUALIZAR ESTOQUE APÓS MOVIMENTAÇÃO
     console.log('Atualizando estoque do item:', movementData.itemId);
     const stockResult = await updateStockAfterMovement(movementData.itemId);
     
