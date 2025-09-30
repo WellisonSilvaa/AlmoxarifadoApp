@@ -12,7 +12,15 @@ import { globalStyles, colors } from '../styles/global';
 import { createMovement } from '../services/movementService';
 import { getItems } from '../services/itemService';
 import { getTrucks } from '../services/truckService';
-import { auth } from '../services/firebase'; // 👈 IMPORTAR AUTH
+import { auth, db } from '../services/firebase'; // 👈 IMPORTAR db TAMBÉM
+
+// 👇 IMPORTAR AS FUNÇÕES DO FIRESTORE
+import { 
+  query, 
+  collection, 
+  where, 
+  getDocs 
+} from 'firebase/firestore';
 
 const MovementScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -32,8 +40,9 @@ const MovementScreen = ({ navigation }) => {
 
   // 👇 OBTER USUÁRIO LOGADO
   const currentUser = auth.currentUser;
-  const responsible = currentUser?.email || 'Usuário Logado'; // 👈 RESPONSÁVEL AUTOMÁTICO
+  const responsible = currentUser?.email || 'Usuário Logado';
 
+  // 👇 FUNÇÃO CORRIGIDA - COM IMPORTS ADICIONADOS
   const loadItemStock = async (itemId) => {
     try {
       const stockQuery = query(
@@ -61,12 +70,10 @@ const MovementScreen = ({ navigation }) => {
     }
   };
 
-
-
-  // // Carregar dados iniciais
-  // useEffect(() => {
-  //   loadInitialData();
-  // }, []);
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadInitialData();
+  }, []);
 
   // Atualizar quando item for selecionado
   useEffect(() => {
@@ -94,7 +101,7 @@ const MovementScreen = ({ navigation }) => {
     }
   };
 
-  // 
+  
 
   // Adicionar validação no handleSubmit
   const validateForm = () => {
