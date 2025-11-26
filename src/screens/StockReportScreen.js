@@ -64,9 +64,9 @@ const StockReportScreen = ({ navigation }) => {
 
   const getStockColor = (item) => {
     if (item.needsRestock) {
-      return colors.danger; // Vermelho para estoque baixo
-    } else if (item.currentStock <= (item.minStock * 1.5)) {
-      return colors.warning; // Amarelo para estoque próximo do mínimo
+      return colors.danger; // Vermelho para estoque baixo (<= 1 unidade ou <= minStock)
+    } else if (item.currentStock <= 2 || item.currentStock <= (item.minStock * 1.5)) {
+      return colors.warning; // Amarelo para estoque próximo do mínimo ou próximo de 1 unidade
     } else {
       return colors.secondary; // Verde para estoque normal
     }
@@ -75,7 +75,7 @@ const StockReportScreen = ({ navigation }) => {
   const getStockStatus = (item) => {
     if (item.needsRestock) {
       return 'ESTOQUE BAIXO';
-    } else if (item.currentStock <= (item.minStock * 1.5)) {
+    } else if (item.currentStock <= 2 || item.currentStock <= (item.minStock * 1.5)) {
       return 'ATENÇÃO';
     } else {
       return 'NORMAL';
@@ -173,7 +173,7 @@ const StockReportScreen = ({ navigation }) => {
         </View>
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryNumber, { color: colors.warning }]}>
-            {items.filter(item => item.currentStock <= (item.minStock * 1.5) && !item.needsRestock).length}
+            {items.filter(item => (item.currentStock <= 2 || item.currentStock <= (item.minStock * 1.5)) && !item.needsRestock).length}
           </Text>
           <Text style={styles.summaryLabel}>Atenção</Text>
         </View>

@@ -1,5 +1,5 @@
 // src/screens/RegisterScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { globalStyles, colors } from '../styles/global';
-import { registerUser } from '../services/authService';
+import { registerUser, checkIsAdmin } from '../services/authService';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -20,6 +20,32 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingPermission, setCheckingPermission] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Verificar se usuário é admin ao carregar tela
+  useEffect(() => {
+    const checkAdminPermission = async () => {
+      const admin = await checkIsAdmin();
+      setIsAdmin(admin);
+      setCheckingPermission(false);
+      
+      if (!admin) {
+        Alert.alert(
+          'Acesso Negado',
+          'Apenas administradores podem cadastrar outros administradores.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      }
+    };
+
+    checkAdminPermission();
+  }, []);
 
   const validateForm = () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -49,10 +75,18 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     if (!validateForm()) return;
 
+    // Verificar novamente se é admin antes de cadastrar
+    const admin = await checkIsAdmin();
+    if (!admin) {
+      Alert.alert('Erro', 'Apenas administradores podem cadastrar outros administradores.');
+      navigation.goBack();
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await registerUser(email, password, name);
+      const result = await registerUser(email, password, name, 'admin');
       
       if (result.success) {
         Alert.alert(
@@ -74,6 +108,34 @@ const RegisterScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
+
+  // Mostrar loading enquanto verifica permissão
+  if (checkingPermission) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10 }}>Verificando permissões...</Text>
+      </View>
+    );
+  }
+
+  // Se não for admin, não mostrar o formulário
+  if (!isAdmin) {
+    return (
+      <View style={[globalStyles.container, { justifyContent: 'center' }]}>
+        <Text style={globalStyles.title}>Acesso Negado</Text>
+        <Text style={{ textAlign: 'center', color: colors.dark, marginBottom: 20 }}>
+          Apenas administradores podem cadastrar outros administradores.
+        </Text>
+        <TouchableOpacity
+          style={globalStyles.button}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={globalStyles.buttonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

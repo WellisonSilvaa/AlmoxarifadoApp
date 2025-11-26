@@ -98,7 +98,7 @@ export const getItemsWithStock = async () => {
         createdAt: data.createdAt 
           ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
           : new Date(),
-        needsRestock: currentStock <= (data.minStock || 0) // 👈 Alerta de estoque baixo
+        needsRestock: needsRestock(currentStock, data.minStock || 0) // 👈 Alerta de estoque baixo (usa função que considera <= 1 unidade)
       });
     }
     

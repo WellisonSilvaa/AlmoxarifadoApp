@@ -41,17 +41,21 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     
-    const result = await loginUser(email, password);
-    
-    setLoading(false);
-    
-    if (result.success) {
-      // Login bem-sucedido
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      navigation.replace('Home');
-    } else {
-      // Erro no login
-      Alert.alert('Erro', result.error);
+    try {
+      const result = await loginUser(email, password);
+      
+      if (result.success) {
+        // Login bem-sucedido - redirecionar para Home
+        // As permissões serão verificadas automaticamente na HomeScreen
+        navigation.replace('Home');
+      } else {
+        // Erro no login
+        Alert.alert('Erro', result.error);
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Ocorreu um erro inesperado ao fazer login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,12 +85,12 @@ const LoginScreen = ({ navigation }) => {
             color: colors.dark,
             fontSize: 16
           }}>
-            Acesso Restrito - Administradores
+            Acesso ao Sistema de Almoxarifado
           </Text>
           
           <TextInput
             style={globalStyles.input}
-            placeholder="E-mail administrativo"
+            placeholder="E-mail"
             placeholderTextColor={colors.gray}
             value={email}
             onChangeText={setEmail}
@@ -126,18 +130,6 @@ const LoginScreen = ({ navigation }) => {
           }}>
             Versão 1.0 - Sistema de Gestão
           </Text>
-          <TouchableOpacity 
-  onPress={() => navigation.navigate('FirstTimeSetup')}
->
-  <Text style={{ 
-    textAlign: 'center', 
-    marginTop: 20, 
-    color: colors.primary,
-    textDecorationLine: 'underline'
-  }}>
-    Primeiro acesso? Configurar sistema
-  </Text>
-</TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

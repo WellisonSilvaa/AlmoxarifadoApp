@@ -31,11 +31,10 @@ const FirstTimeSetupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const result = await registerUser(email, password, name);
+      // Criar primeiro admin com role 'admin'
+      const result = await registerUser(email, password, name, 'admin');
       
       if (result.success) {
-        // Aqui você pode adicionar lógica para salvar informações adicionais
-        // no Firestore sobre este usuário mestre
         Alert.alert(
           'Sucesso',
           'Usuário administrador mestre criado com sucesso!',

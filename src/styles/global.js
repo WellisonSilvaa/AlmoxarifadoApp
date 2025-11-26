@@ -5,10 +5,12 @@ export const colors = {
   primary: '#3498db',
   secondary: '#2ecc71',
   danger: '#e74c3c',
+  warning: '#f39c12',
   dark: '#34495e',
   light: '#ecf0f1',
   white: '#ffffff',
-  gray: '#95a5a6'
+  gray: '#95a5a6',
+  black: '#000000'
 };
 
 export const globalStyles = StyleSheet.create({
@@ -36,7 +38,8 @@ export const globalStyles = StyleSheet.create({
     fontSize: 16,
     borderRadius: 8,
     marginBottom: 15,
-    backgroundColor: colors.white
+    backgroundColor: colors.white,
+    color: colors.dark
   },
 
   // Botões
