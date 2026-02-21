@@ -82,7 +82,7 @@ export const getTrucks = async () => {
 export const getTruckById = async (id) => {
   try {
     const truckRef = doc(db, 'trucks', id);
-    const docSnap = await getDocs(truckRef);
+    const docSnap = await getDoc(truckRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();

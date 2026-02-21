@@ -42,7 +42,7 @@ const ItemFormScreen = ({ navigation }) => {
 
             // Abrir galeria
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: 'images',
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
                 aspect: [4, 3],
                 quality: 0.8,
@@ -80,7 +80,7 @@ const ItemFormScreen = ({ navigation }) => {
                 allowsEditing: true,
                 aspect: [4, 3],
                 quality: 0.8,
-                mediaTypes: 'images',
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
             });
 
             console.log('Resultado da câmera:', result);

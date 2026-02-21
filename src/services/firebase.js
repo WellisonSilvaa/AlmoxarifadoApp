@@ -6,18 +6,23 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
-// Sua configuração do Firebase (substitua com seus dados reais)
+// ⚠️ IMPORTANTE: Nunca exponha credenciais no código-fonte!
+// Use variáveis de ambiente em um arquivo .env (ignorado pelo git)
+// Exemplo: REACT_APP_FIREBASE_API_KEY=sua_chave_aqui
+// Para desenvolvimento local, use um arquivo .env.local
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBkzLd38OWJIUBCYn7JUoVJJQ2aGQ5BOA0",
-  authDomain: "almoxarifado-app-9d831.firebaseapp.com",
-  projectId: "almoxarifado-app-9d831",
-  storageBucket: "almoxarifado-app-9d831.firebasestorage.app",
-  messagingSenderId: "753285937415",
-  appId: "1:753285937415:web:5aa7802006c299498deda2"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "YOUR_API_KEY",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "YOUR_APP_ID"
 };
-// console.log para debug
+
+// console.log para debug (sem expor chaves sensíveis)
 console.log('Firebase config:', {
-  ...firebaseConfig,
+  projectId: firebaseConfig.projectId,
   apiKey: firebaseConfig.apiKey ? 'CONFIGURADA' : 'FALTANDO'
 });
 
