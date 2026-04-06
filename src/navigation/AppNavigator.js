@@ -19,88 +19,33 @@ import MovementScreen from '../screens/MovementScreen';
 import MovementListScreen from '../screens/MovementListScreen';
 import MovementDetailScreen from '../screens/MovementDetailScreen';
 import StockReportScreen from '../screens/StockReportScreen';
+import TruckDetailScreen from '../screens/TruckDetailScreen';
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'Painel Principal' }}
-        />
-        <Stack.Screen
-          name="Register"
-          component={RegisterScreen}
-          options={{ title: 'Cadastrar Administrador' }}
-        />
-        <Stack.Screen
-          name="FirstTimeSetup"
-          component={FirstTimeSetupScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="EmployeeForm"
-          component={EmployeeFormScreen}
-          options={{ title: 'Cadastrar Funcionário' }}
-        />
-        <Stack.Screen
-          name="ItemForm"
-          component={ItemFormScreen}
-          options={{ title: 'Cadastrar Item' }}
-        />
-        <Stack.Screen
-          name='ItemList'
-          component={ItemListScreen}
-          options={{ title: 'Lista de itens '}}
-        />
-        <Stack.Screen
-          name='ItemDetail'
-          component={ItemDetailScreen}
-          options={{ title: 'Detalhes do item '}}
-        />
-        <Stack.Screen
-          name='EditItem'
-          component={EditItemScreen}
-          options={{ title: 'Editar item '}}
-        />
-        <Stack.Screen
-          name='TruckForm'
-          component={TruckFormScreen}
-          options={{ title: 'Cadastrar carreta' }}
-        />
-        <Stack.Screen
-          name='TruckList'
-          component={TruckListScreen}
-          options={{ title: 'Lista de carretas' }}
-        />
-        <Stack.Screen
-          name='Movements'
-          component={MovementScreen}
-          options={{ title: 'Movimentações' }}
-        />
-        <Stack.Screen
-          name='MovementList'
-          component={MovementListScreen}
-          options={{ title: 'Histórico de movimentações' }}
-        />
-        <Stack.Screen
-          name='MovementDetail'
-          component={MovementDetailScreen}
-          options={{ title: 'Detalhes da movimentação' }}
-        />
-        <Stack.Screen
-          name='StockReport'
-          component={StockReportScreen}
-          options={{ title: 'Relatório de Estoque' }}
-        />
+      <Stack.Navigator 
+        initialRouteName="Login"
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="FirstTimeSetup" component={FirstTimeSetupScreen} />
+        <Stack.Screen name="EmployeeForm" component={EmployeeFormScreen} />
+        <Stack.Screen name="ItemForm" component={ItemFormScreen} />
+        <Stack.Screen name="ItemList" component={ItemListScreen} />
+        <Stack.Screen name="ItemDetail" component={ItemDetailScreen} />
+        <Stack.Screen name="EditItem" component={EditItemScreen} />
+        <Stack.Screen name="TruckForm" component={TruckFormScreen} />
+        <Stack.Screen name="TruckList" component={TruckListScreen} />
+        <Stack.Screen name="Movements" component={MovementScreen} />
+        <Stack.Screen name="MovementList" component={MovementListScreen} />
+        <Stack.Screen name="MovementDetail" component={MovementDetailScreen} />
+        <Stack.Screen name="StockReport" component={StockReportScreen} />
+        <Stack.Screen name="TruckDetail" component={TruckDetailScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

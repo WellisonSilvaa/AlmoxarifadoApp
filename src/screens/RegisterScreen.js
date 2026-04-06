@@ -9,10 +9,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar
 } from 'react-native';
-import { globalStyles, colors } from '../styles/global';
+import { colors, typography } from '../styles/global';
 import { registerUser, checkIsAdmin } from '../services/authService';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -23,7 +26,6 @@ const RegisterScreen = ({ navigation }) => {
   const [checkingPermission, setCheckingPermission] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Verificar se usuário é admin ao carregar tela
   useEffect(() => {
     const checkAdminPermission = async () => {
       const admin = await checkIsAdmin();
@@ -32,190 +34,167 @@ const RegisterScreen = ({ navigation }) => {
       
       if (!admin) {
         Alert.alert(
-          'Acesso Negado',
-          'Apenas administradores podem cadastrar outros administradores.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack()
-            }
-          ]
+          'Acesso Restrito',
+          'Apenas administradores podem cadastrar novos usuários administrativos.',
+          [{ text: 'Entendi', onPress: () => navigation.goBack() }]
         );
       }
     };
-
     checkAdminPermission();
   }, []);
 
   const validateForm = () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return false;
     }
-
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem');
+      Alert.alert('Erro', 'As senhas não coincidem.');
       return false;
     }
-
     if (password.length < 6) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
       return false;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Erro', 'Por favor, insira um email válido');
+      Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
       return false;
     }
-
     return true;
   };
 
   const handleRegister = async () => {
     if (!validateForm()) return;
-
-    // Verificar novamente se é admin antes de cadastrar
     const admin = await checkIsAdmin();
     if (!admin) {
-      Alert.alert('Erro', 'Apenas administradores podem cadastrar outros administradores.');
+      Alert.alert('Erro', 'Sem permissão.');
       navigation.goBack();
       return;
     }
 
     setLoading(true);
-
     try {
       const result = await registerUser(email, password, name, 'admin');
-      
       if (result.success) {
-        Alert.alert(
-          'Sucesso',
-          'Administrador cadastrado com sucesso!',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack()
-            }
-          ]
-        );
+        Alert.alert('Sucesso', 'Administrador cadastrado!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
       } else {
         Alert.alert('Erro', result.error);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Ocorreu um erro inesperado');
+      Alert.alert('Erro', 'Ocorreu um erro inesperado.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Mostrar loading enquanto verifica permissão
   if (checkingPermission) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 10 }}>Verificando permissões...</Text>
       </View>
     );
   }
 
-  // Se não for admin, não mostrar o formulário
   if (!isAdmin) {
     return (
-      <View style={[globalStyles.container, { justifyContent: 'center' }]}>
-        <Text style={globalStyles.title}>Acesso Negado</Text>
-        <Text style={{ textAlign: 'center', color: colors.dark, marginBottom: 20 }}>
-          Apenas administradores podem cadastrar outros administradores.
-        </Text>
-        <TouchableOpacity
-          style={globalStyles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={globalStyles.buttonText}>Voltar</Text>
+      <View style={styles.deniedContainer}>
+        <Text style={styles.deniedIcon}>🔒</Text>
+        <Text style={styles.deniedTitle}>Acesso Negado</Text>
+        <Text style={styles.deniedText}>Apenas administradores de alto nível podem gerenciar contas administrativas.</Text>
+        <TouchableOpacity style={styles.deniedButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.deniedButtonText}>Voltar ao Painel</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={[globalStyles.container, { justifyContent: 'center' }]}>
-          <Text style={globalStyles.title}>
-            Cadastrar Administrador
-          </Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Text style={{ fontSize: 20 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Novo Administrador</Text>
+          <View style={{ width: 40 }} />
+      </View>
 
-          <Text style={{
-            textAlign: 'center',
-            marginBottom: 30,
-            color: colors.dark,
-            fontSize: 16
-          }}>
-            Preencha os dados do novo administrador
-          </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.formCard}>
+          <Text style={styles.formSubtitle}>Crie uma nova conta com privilégios administrativos para o sistema.</Text>
 
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Nome completo"
-            placeholderTextColor={colors.gray}
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-            editable={!loading}
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nome Completo</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Digite o nome"
+              placeholderTextColor={colors.gray}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              editable={!loading}
+            />
+          </View>
 
-          <TextInput
-            style={globalStyles.input}
-            placeholder="E-mail"
-            placeholderTextColor={colors.gray}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>E-mail de Acesso</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="email@exemplo.com"
+              placeholderTextColor={colors.gray}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
+            />
+          </View>
 
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Senha (mínimo 6 caracteres)"
-            placeholderTextColor={colors.gray}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Senha Temporária</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="••••••••"
+              placeholderTextColor={colors.gray}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
 
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Confirmar senha"
-            placeholderTextColor={colors.gray}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            editable={!loading}
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Confirmar Senha</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="••••••••"
+              placeholderTextColor={colors.gray}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          </View>
+        </View>
 
-          <TouchableOpacity
-            style={[globalStyles.button, loading && { backgroundColor: colors.gray }]}
+        <View style={styles.footer}>
+          <TouchableOpacity 
+            style={styles.submitButton}
             onPress={handleRegister}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={globalStyles.buttonText}>Cadastrar Administrador</Text>
-            )}
+            <LinearGradient
+              colors={[colors.primary, colors.primaryVariant]}
+              style={styles.gradientButton}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Cadastrar Administrador</Text>}
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[globalStyles.button, { backgroundColor: colors.secondary }]}
-            onPress={() => navigation.goBack()}
-            disabled={loading}
-          >
-            <Text style={globalStyles.buttonText}>Voltar</Text>
+          <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()} disabled={loading}>
+            <Text style={styles.cancelText}>Cancelar Operação</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -223,4 +202,55 @@ const RegisterScreen = ({ navigation }) => {
   );
 };
 
-export default RegisterScreen;
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    height: 80, 
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: colors.surfaceVariant,
+    paddingTop: 25,
+  },
+  headerTitle: { ...typography.headline, fontSize: 18, color: colors.primary },
+  backButton: { padding: 8 },
+  scrollContent: { padding: 24 },
+  formCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: 24, 
+    padding: 24, 
+    borderWidth: 1, 
+    borderColor: colors.outlineVariant,
+    marginBottom: 24,
+  },
+  formSubtitle: { ...typography.body, color: colors.secondary, marginBottom: 32, fontSize: 14, textAlign: 'center' },
+  inputGroup: { marginBottom: 20 },
+  label: { ...typography.label, fontSize: 12, color: colors.onSurface, marginBottom: 8, marginLeft: 4 },
+  input: { 
+    backgroundColor: colors.surfaceContainerLow, 
+    borderRadius: 16, 
+    padding: 16, 
+    fontSize: 16, 
+    color: colors.onSurface,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...typography.body,
+  },
+  footer: { gap: 12 },
+  gradientButton: { height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  buttonText: { ...typography.label, fontSize: 16, color: '#fff' },
+  cancelButton: { height: 56, justifyContent: 'center', alignItems: 'center' },
+  cancelText: { ...typography.label, color: colors.secondary, fontSize: 16 },
+  deniedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, backgroundColor: colors.background },
+  deniedIcon: { fontSize: 60, marginBottom: 20 },
+  deniedTitle: { ...typography.headline, fontSize: 24, color: colors.onSurface, marginBottom: 12 },
+  deniedText: { ...typography.body, textAlign: 'center', color: colors.secondary, marginBottom: 32, lineHeight: 22 },
+  deniedButton: { backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 28 },
+  deniedButtonText: { ...typography.label, color: '#fff' }
+});
+
+export default RegisterScreen;

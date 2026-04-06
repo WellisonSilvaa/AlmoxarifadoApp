@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   ActivityIndicator,
   Alert,
-  TouchableOpacity
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  Dimensions,
+  Platform
 } from 'react-native';
-import { globalStyles, colors } from '../styles/global';
+import { globalStyles, colors, typography } from '../styles/global';
 import { getMovementById } from '../services/movementService';
 import LicensePlate from '../components/LicensePlate';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const MovementDetailScreen = ({ route, navigation }) => {
   const { movementId } = route.params;
@@ -23,7 +30,6 @@ const MovementDetailScreen = ({ route, navigation }) => {
   const loadMovement = async () => {
     try {
       const result = await getMovementById(movementId);
-      
       if (result.success) {
         setMovement(result.data);
       } else {
@@ -38,292 +44,346 @@ const MovementDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const getMovementIcon = (type) => {
-    return type === 'entry' ? '📥' : '📤';
-  };
-
-  const getMovementColor = (type) => {
-    return type === 'entry' ? colors.secondary : colors.primary;
-  };
-
-  const getMovementTypeText = (type) => {
-    return type === 'entry' ? 'ENTRADA' : 'SAÍDA';
-  };
-
-  const formatDateTime = (date) => {
-    if (!date) return 'N/A';
-    
+  const styleConfig = useMemo(() => {
+    if (!movement) return {};
+    const isEntry = movement.type === 'entry';
     return {
-      date: date.toLocaleDateString('pt-BR'),
-      time: date.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      }),
-      full: date.toLocaleString('pt-BR')
+      color: isEntry ? '#15803d' : colors.error,
+      bg: isEntry ? '#f0fdf4' : '#fef2f2',
+      icon: isEntry ? '📥' : '📤',
+      label: isEntry ? 'ENTRADA' : 'SAÍDA'
     };
-  };
+  }, [movement]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 10 }}>Carregando movimentação...</Text>
       </View>
     );
   }
 
-  if (!movement) {
-    return (
-      <View style={globalStyles.container}>
-        <Text style={globalStyles.title}>Movimentação não encontrada</Text>
-        <TouchableOpacity 
-          style={globalStyles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={globalStyles.buttonText}>Voltar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const dateTime = formatDateTime(movement.date);
+  if (!movement) return null;
 
   return (
-    <ScrollView contentContainerStyle={globalStyles.container}>
-      {/* Cabeçalho com Tipo */}
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
       <View style={styles.header}>
-        <View style={[styles.typeBadge, { backgroundColor: getMovementColor(movement.type) }]}>
-          <Text style={styles.typeText}>
-            {getMovementIcon(movement.type)} {getMovementTypeText(movement.type)}
-          </Text>
-        </View>
-        <Text style={styles.idText}>ID: {movement.id}</Text>
-      </View>
-
-      {/* Data e Hora */}
-      <View style={styles.dateTimeSection}>
-        <Text style={styles.sectionTitle}>📅 Data e Hora</Text>
-        <View style={styles.dateTimeCard}>
-          <Text style={styles.dateText}>{dateTime.date}</Text>
-          <Text style={styles.timeText}>{dateTime.time}</Text>
-          <Text style={styles.fullDateTime}>{dateTime.full}</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={{ fontSize: 20 }}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Detalhes do Fluxo</Text>
+          <View style={styles.profileIcon} />
         </View>
       </View>
 
-      {/* Item */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📦 Item Movimentado</Text>
-        <View style={styles.card}>
-          <Text style={styles.itemName}>{movement.itemName}</Text>
-          <Text style={styles.itemId}>ID: {movement.itemId}</Text>
-          <View style={styles.quantitySection}>
-            <Text style={styles.quantityLabel}>Quantidade:</Text>
-            <Text style={styles.quantityValue}>{movement.quantity} unidades</Text>
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* Hero Type Card */}
+        <View style={[styles.heroCard, { backgroundColor: styleConfig.bg }]}>
+          <Text style={styles.heroIcon}>{styleConfig.icon}</Text>
+          <View>
+            <Text style={[styles.heroLabel, { color: styleConfig.color }]}>{styleConfig.label}</Text>
+            <Text style={styles.heroId}>#{movement.id.substring(0, 8)}</Text>
           </View>
         </View>
-      </View>
 
-      {/* Carreta (apenas para saídas) */}
-      {movement.type === 'exit' && movement.truckPlate && (
+        {/* Info Bento Grid */}
+        <View style={styles.bentoGrid}>
+          <View style={styles.bentoCard}>
+            <Text style={styles.bentoLabel}>Quantidade</Text>
+            <Text style={[styles.bentoValue, { color: styleConfig.color }]}>{movement.quantity}</Text>
+            <Text style={styles.bentoSub}>unidades</Text>
+          </View>
+          <View style={styles.bentoCard}>
+            <Text style={styles.bentoLabel}>Horário</Text>
+            <Text style={styles.bentoValue}>
+              {movement.date ? movement.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+            </Text>
+            <Text style={styles.bentoSub}>{movement.date?.toLocaleDateString('pt-BR')}</Text>
+          </View>
+        </View>
+
+        {/* Item Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🚚 Carreta</Text>
-          <View style={styles.card}>
-            <Text style={styles.truckLabel}>Placa da Carreta:</Text>
-            <View style={styles.licensePlateContainer}>
-              <LicensePlate plate={movement.truckPlate} size="large" />
+          <Text style={styles.sectionTitle}>Produto</Text>
+          <View style={styles.itemCard}>
+            <View style={styles.itemIcon}>
+              <Text style={{ fontSize: 20 }}>📦</Text>
             </View>
-            {movement.truckId && (
-              <Text style={styles.truckId}>ID: {movement.truckId}</Text>
-            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.itemName}>{movement.itemName}</Text>
+              <Text style={styles.itemMetadata}>ID: {movement.itemId}</Text>
+            </View>
           </View>
         </View>
-      )}
 
-      {/* Responsável */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>👤 Responsável</Text>
-        <View style={styles.card}>
-          <Text style={styles.responsibleName}>{movement.responsible}</Text>
-          <Text style={styles.registradoPor}>
-            Registrado por: {movement.createdBy}
-          </Text>
-        </View>
-      </View>
+        {/* Logistics Section */}
+        {movement.type === 'exit' && movement.truckPlate && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Logística</Text>
+            <View style={styles.logisticsCard}>
+              <Text style={styles.logisticsLabel}>Destino / Carreta</Text>
+              <View style={styles.plateWrapper}>
+                <LicensePlate plate={movement.truckPlate} size="small" />
+              </View>
+            </View>
+          </View>
+        )}
 
-      {/* Observações */}
-      {movement.notes && (
+        {/* Responsible Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Observações</Text>
-          <View style={styles.card}>
-            <Text style={styles.notesText}>{movement.notes}</Text>
+          <Text style={styles.sectionTitle}>Operação</Text>
+          <View style={styles.opCard}>
+            <View style={styles.opRow}>
+              <Text style={styles.opLabel}>Responsável:</Text>
+              <Text style={styles.opValue}>{movement.responsible || 'Sistema'}</Text>
+            </View>
+            <View style={styles.opRow}>
+              <Text style={styles.opLabel}>Estado:</Text>
+              <Text style={[styles.opValue, { color: movement.isActive ? '#15803d' : colors.error }]}>
+                {movement.isActive ? 'Confirmada' : 'Inativada'}
+              </Text>
+            </View>
           </View>
         </View>
-      )}
 
-      {/* Status */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚙️ Status</Text>
-        <View style={styles.card}>
-          <Text style={[
-            styles.statusText,
-            { color: movement.isActive ? colors.secondary : colors.danger }
-          ]}>
-            {movement.isActive ? '✅ ATIVA' : '❌ INATIVA'}
-          </Text>
-          <Text style={styles.statusInfo}>
-            Esta movimentação está {movement.isActive ? 'ativa no sistema' : 'inativada'}
-          </Text>
+        {/* Notes Section */}
+        {movement.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Observações</Text>
+            <View style={styles.notesCard}>
+              <Text style={styles.notesText}>{movement.notes}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Action Buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => navigation.navigate('Movements')}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryVariant]}
+              style={styles.gradientButton}
+            >
+              <Text style={styles.buttonText}>Nova Movimentação</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.secondaryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.secondaryText}>Voltar ao Histórico</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Botões de Ação */}
-      <TouchableOpacity 
-        style={[globalStyles.button, { backgroundColor: colors.warning }]}
-        onPress={() => navigation.navigate('MovementList')}
-      >
-        <Text style={globalStyles.buttonText}>📋 Voltar para Histórico</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[globalStyles.button, { backgroundColor: colors.primary }]}
-        onPress={() => navigation.navigate('Movements')}
-      >
-        <Text style={globalStyles.buttonText}>➕ Nova Movimentação</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   header: {
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceVariant,
+    paddingTop: 25,
+    height: 85,
+  },
+  headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 25,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 60,
   },
-  typeBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  backButton: {
+    padding: 8,
   },
-  typeText: {
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 16,
+  headerTitle: {
+    ...typography.headline,
+    fontSize: 18,
+    color: colors.primary,
   },
-  idText: {
-    color: colors.gray,
+  profileIcon: {
+    width: 36,
+  },
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 24,
+  },
+  heroIcon: {
+    fontSize: 32,
+  },
+  heroLabel: {
+    ...typography.headline,
+    fontSize: 22,
+    letterSpacing: 1,
+  },
+  heroId: {
+    ...typography.body,
     fontSize: 12,
+    color: colors.secondary,
     fontFamily: 'monospace',
   },
-  dateTimeSection: {
-    marginBottom: 20,
+  bentoGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 10,
+  bentoCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
   },
-  dateTimeCard: {
-    backgroundColor: colors.white,
-    padding: 15,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning,
+  bentoLabel: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.secondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
   },
-  dateText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 5,
+  bentoValue: {
+    ...typography.headline,
+    fontSize: 24,
+    color: colors.onSurface,
   },
-  timeText: {
-    fontSize: 16,
-    color: colors.primary,
-    marginBottom: 5,
-  },
-  fullDateTime: {
-    fontSize: 12,
-    color: colors.gray,
-    fontStyle: 'italic',
+  bentoSub: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.secondary,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 32,
   },
-  card: {
-    backgroundColor: colors.white,
-    padding: 15,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.light,
+  sectionTitle: {
+    ...typography.title,
+    fontSize: 16,
+    color: colors.onSurface,
+    marginBottom: 16,
+    paddingLeft: 4,
+  },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+  },
+  itemIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceContainerLow,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 5,
+    ...typography.title,
+    fontSize: 17,
+    color: colors.onSurface,
+    marginBottom: 2,
   },
-  itemId: {
-    color: colors.gray,
-    fontSize: 12,
-    marginBottom: 10,
-    fontFamily: 'monospace',
+  itemMetadata: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.secondary,
   },
-  quantitySection: {
+  logisticsCard: {
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+  },
+  logisticsLabel: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.secondary,
+    marginBottom: 12,
+  },
+  plateWrapper: {
+    alignItems: 'flex-start',
+  },
+  opCard: {
+    backgroundColor: colors.surfaceContainerLow,
+    padding: 16,
+    borderRadius: 20,
+  },
+  opRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingVertical: 8,
   },
-  quantityLabel: {
-    color: colors.gray,
-    fontSize: 14,
+  opLabel: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.secondary,
   },
-  quantityValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
+  opValue: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.onSurface,
+    fontFamily: 'Manrope_600SemiBold',
   },
-  truckLabel: {
-    color: colors.gray,
-    fontSize: 14,
-    marginBottom: 10,
-  },
-  licensePlateContainer: {
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  truckId: {
-    color: colors.gray,
-    fontSize: 12,
-    fontFamily: 'monospace',
-    textAlign: 'center',
-  },
-  responsibleName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 5,
-  },
-  registradoPor: {
-    color: colors.gray,
-    fontSize: 12,
-    fontStyle: 'italic',
+  notesCard: {
+    backgroundColor: '#fffdf0',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
   },
   notesText: {
+    ...typography.body,
     fontSize: 14,
-    color: colors.dark,
-    lineHeight: 20,
+    color: '#92400e',
+    lineHeight: 22,
   },
-  statusText: {
+  actions: {
+    gap: 12,
+    marginTop: 16,
+  },
+  gradientButton: {
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    ...typography.label,
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#fff',
+    textTransform: 'none',
   },
-  statusInfo: {
-    fontSize: 12,
-    color: colors.gray,
+  secondaryButton: {
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-};
+  secondaryText: {
+    ...typography.label,
+    fontSize: 16,
+    color: colors.secondary,
+    textTransform: 'none',
+  }
+});
 
-export default MovementDetailScreen;
+export default MovementDetailScreen;

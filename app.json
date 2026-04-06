@@ -7,7 +7,8 @@
           "photosPermission": "O aplicativo precisa acessar suas fotos para selecionar imagens dos itens.",
           "cameraPermission": "O aplicativo precisa acessar sua câmera para tirar fotos dos itens."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "name": "AlmoxarifadoApp",
     "slug": "AlmoxarifadoApp",

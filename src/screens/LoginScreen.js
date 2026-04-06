@@ -9,28 +9,31 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  StyleSheet,
+  StatusBar
 } from 'react-native';
-import { globalStyles, colors } from '../styles/global';
+import { globalStyles, colors, typography } from '../styles/global';
 import { loginUser, onAuthStateChanged } from '../services/authService';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Verificar se usuário já está logado
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
-        // Usuário já está autenticado, redirecionar para Home
         navigation.replace('Home');
       }
       setCheckingAuth(false);
     });
 
-    return unsubscribe; // Limpar subscription ao desmontar
+    return unsubscribe;
   }, []);
 
   const handleLogin = async () => {
@@ -45,11 +48,8 @@ const LoginScreen = ({ navigation }) => {
       const result = await loginUser(email, password);
       
       if (result.success) {
-        // Login bem-sucedido - redirecionar para Home
-        // As permissões serão verificadas automaticamente na HomeScreen
         navigation.replace('Home');
       } else {
-        // Erro no login
         Alert.alert('Erro', result.error);
       }
     } catch (error) {
@@ -59,12 +59,11 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  // Mostrar loading enquanto verifica autenticação
   if (checkingAuth) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 10 }}>Verificando autenticação...</Text>
+        <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Verificando acesso...</Text>
       </View>
     );
   }
@@ -72,68 +71,324 @@ const LoginScreen = ({ navigation }) => {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.background }}
     >
+      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={[globalStyles.container, { justifyContent: 'center' }]}>
-          <Text style={globalStyles.title}>
-            Controle de Almoxarifado
-          </Text>
-          <Text style={{ 
-            textAlign: 'center', 
-            marginBottom: 30, 
-            color: colors.dark,
-            fontSize: 16
-          }}>
-            Acesso ao Sistema de Almoxarifado
-          </Text>
+        {/* Branding Section (Hero) */}
+        <LinearGradient
+          colors={[colors.primary, colors.primaryVariant]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroSection}
+        >
+          <View style={styles.heroContent}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoBox}>
+                <Text style={{ fontSize: 24 }}>📦</Text>
+              </View>
+              <Text style={styles.logoText}>Almoxarifado Pro</Text>
+            </View>
+            
+            <View style={styles.heroTextContainer}>
+              <Text style={styles.heroTitle}>Acelere sua{"\n"}Produtividade.</Text>
+              <Text style={styles.heroSubtitle}>
+                Gestão inteligente de estoque com precisão logística e controle em tempo real.
+              </Text>
+            </View>
+
+            <View style={styles.trustBadge}>
+              <View style={styles.avatarRow}>
+                <View style={[styles.avatar, { backgroundColor: '#e1e3e4' }]} />
+                <View style={[styles.avatar, { backgroundColor: '#c00015', marginLeft: -12 }]} />
+                <View style={[styles.avatar, { backgroundColor: '#5f5e5e', marginLeft: -12 }]} />
+              </View>
+              <Text style={styles.trustText}>+500 EMPRESAS CONFIAM</Text>
+            </View>
+          </View>
           
-          <TextInput
-            style={globalStyles.input}
-            placeholder="E-mail"
-            placeholderTextColor={colors.gray}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!loading}
-          />
-          
-          <TextInput
-            style={globalStyles.input}
-            placeholder="Senha"
-            placeholderTextColor={colors.gray}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
-          />
-          
-          {/* Botão de Login */}
+          {/* Decorative Elements */}
+          <View style={styles.decoCircle1} />
+          <View style={styles.decoCircle2} />
+        </LinearGradient>
+
+        {/* Login Form Section */}
+        <View style={styles.formSection}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Bem-vindo de volta</Text>
+            <Text style={styles.formSubtitle}>Acesse sua conta para gerenciar seu estoque.</Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>E-MAIL CORPORATIVO</Text>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputIcon}>📧</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="exemplo@empresa.com.br"
+                placeholderTextColor={colors.secondary + '80'}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>SENHA</Text>
+              <TouchableOpacity>
+                <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputIcon}>🔒</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={colors.secondary + '80'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <Text>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <TouchableOpacity 
-            style={[globalStyles.button, loading && { backgroundColor: colors.gray }]} 
+            style={[styles.loginButton, loading && { opacity: 0.8 }]} 
             onPress={handleLogin}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={colors.white} />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
-              <Text style={globalStyles.buttonText}>Entrar no Sistema</Text>
+              <>
+                <Text style={styles.loginButtonText}>Acessar Painel</Text>
+                <Text style={{ color: colors.onPrimary, fontSize: 18, marginLeft: 8 }}>→</Text>
+              </>
             )}
           </TouchableOpacity>
-          
-          <Text style={{ 
-            textAlign: 'center', 
-            marginTop: 20, 
-            color: colors.gray,
-            fontSize: 14
-          }}>
-            Versão 1.0 - Sistema de Gestão
-          </Text>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Novo na plataforma? <Text style={styles.footerLink}>Solicite acesso ao seu gerente</Text>
+            </Text>
+            
+            <View style={styles.footerLinksRow}>
+              <Text style={styles.footerSubLink}>SEGURANÇA</Text>
+              <Text style={styles.footerSubLink}>TERMOS</Text>
+              <Text style={styles.footerSubLink}>SUPORTE</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
-export default LoginScreen;
+const styles = StyleSheet.create({
+  heroSection: {
+    padding: 32,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    minHeight: 340,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  heroContent: {
+    zIndex: 10,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 32,
+  },
+  logoBox: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoText: {
+    ...typography.headline,
+    fontSize: 22,
+    color: '#ffffff',
+  },
+  heroTextContainer: {
+    marginBottom: 32,
+  },
+  heroTitle: {
+    ...typography.headline,
+    fontSize: 42,
+    color: '#ffffff',
+    lineHeight: 46,
+    marginBottom: 16,
+  },
+  heroSubtitle: {
+    ...typography.body,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    maxWidth: 280,
+    lineHeight: 22,
+  },
+  trustBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  trustText: {
+    ...typography.label,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  decoCircle1: {
+    position: 'absolute',
+    bottom: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  decoCircle2: {
+    position: 'absolute',
+    top: '20%',
+    left: -40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  formSection: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: 32,
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  formHeader: {
+    marginBottom: 32,
+  },
+  formTitle: {
+    ...typography.title,
+    fontSize: 28,
+    color: colors.onSurface,
+    marginBottom: 8,
+  },
+  formSubtitle: {
+    ...typography.body,
+    color: colors.secondary,
+    fontSize: 15,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  label: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.onSurfaceVariant,
+    marginLeft: 4,
+  },
+  forgotPassword: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.primary,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceContainerHigh,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    height: 56,
+    ...typography.body,
+    fontSize: 16,
+    color: colors.onSurface,
+  },
+  eyeIcon: {
+    padding: 8,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    height: 60,
+    borderRadius: 16,
+    marginTop: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  loginButtonText: {
+    ...typography.title,
+    fontSize: 18,
+    color: colors.onPrimary,
+  },
+  footer: {
+    marginTop: 40,
+    alignItems: 'center',
+  },
+  footerText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.secondary,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  footerLink: {
+    color: colors.primary,
+    fontFamily: 'Manrope_700Bold',
+  },
+  footerLinksRow: {
+    flexDirection: 'row',
+    gap: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: colors.surfaceVariant,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  footerSubLink: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.gray,
+  }
+});
+
+export default LoginScreen;

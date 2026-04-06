@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,18 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-  ScrollView
+  ScrollView,
+  StyleSheet,
+  StatusBar,
+  Dimensions,
+  Platform
 } from 'react-native';
-import { globalStyles, colors } from '../styles/global';
+import { globalStyles, colors, typography } from '../styles/global';
 import { getMovements } from '../services/movementService';
 import LicensePlate from '../components/LicensePlate';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const MovementListScreen = ({ navigation }) => {
   const [movements, setMovements] = useState([]);
@@ -21,20 +28,13 @@ const MovementListScreen = ({ navigation }) => {
 
   const loadMovements = async () => {
     try {
-      console.log('Carregando movimentações...');
       const result = await getMovements();
-      
-      console.log('Resultado da busca:', result);
-      
       if (result.success) {
-        console.log('Movimentações encontradas:', result.data.length);
         setMovements(result.data);
       } else {
-        console.log('Erro ao carregar movimentações:', result.error);
         Alert.alert('Erro', result.error);
       }
     } catch (error) {
-      console.error('Erro completo na loadMovements:', error);
       Alert.alert('Erro', 'Não foi possível carregar as movimentações');
     } finally {
       setLoading(false);
@@ -51,306 +51,350 @@ const MovementListScreen = ({ navigation }) => {
     loadMovements();
   };
 
-  // Filtrar movimentações
-  const filteredMovements = filter === 'all' 
-    ? movements 
-    : movements.filter(movement => movement.type === filter);
+  const filteredMovements = useMemo(() => {
+    return filter === 'all' 
+      ? movements 
+      : movements.filter(m => m.type === filter);
+  }, [movements, filter]);
 
-  const getMovementIcon = (type) => {
-    return type === 'entry' ? '📥' : '📤';
-  };
-
-  const getMovementColor = (type) => {
-    return type === 'entry' ? colors.secondary : colors.primary;
-  };
-
-  const getMovementTypeText = (type) => {
-    return type === 'entry' ? 'ENTRADA' : 'SAÍDA';
-  };
+  const stats = useMemo(() => {
+    const today = new Date().toLocaleDateString('pt-BR');
+    const todayMovements = movements.filter(m => 
+      (m.date?.toLocaleDateString ? m.date.toLocaleDateString('pt-BR') : '') === today
+    );
+    
+    return {
+      entries: todayMovements.filter(m => m.type === 'entry').length,
+      exits: todayMovements.filter(m => m.type === 'exit').length,
+    };
+  }, [movements]);
 
   const renderMovement = ({ item }) => (
     <TouchableOpacity 
-      style={[
-        globalStyles.card, 
-        { borderLeftWidth: 4, borderLeftColor: getMovementColor(item.type) }
-      ]}
+      style={styles.movementCard}
       onPress={() => navigation.navigate('MovementDetail', { movementId: item.id })}
     >
-      {/* Cabeçalho com Tipo e Data */}
-      <View style={styles.header}>
-        <View style={styles.typeBadge}>
-          <Text style={[styles.typeText, { color: getMovementColor(item.type) }]}>
-            {getMovementIcon(item.type)} {getMovementTypeText(item.type)}
+      <View style={styles.cardRow}>
+        <View style={[
+          styles.typeIcon, 
+          { backgroundColor: item.type === 'entry' ? '#f0fdf4' : '#fff1f2' }
+        ]}>
+          <Text style={{ fontSize: 18 }}>{item.type === 'entry' ? '📥' : '📤'}</Text>
+        </View>
+        
+        <View style={styles.cardInfo}>
+          <Text style={styles.itemName} numberOfLines={1}>{item.itemName}</Text>
+          <Text style={styles.responsible}>{item.responsible || 'Sistema'}</Text>
+        </View>
+
+        <View style={styles.cardRight}>
+          <Text style={[
+            styles.quantityText, 
+            { color: item.type === 'entry' ? '#15803d' : colors.error }
+          ]}>
+            {item.type === 'entry' ? '+' : '-'}{item.quantity}
+          </Text>
+          <Text style={styles.timeText}>
+            {item.date ? item.date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
           </Text>
         </View>
-        <Text style={styles.dateText}>
-          {item.date ? item.date.toLocaleDateString('pt-BR') : 'N/A'}
-        </Text>
       </View>
 
-      {/* Item e Quantidade */}
-      <View style={styles.itemSection}>
-        <Text style={styles.itemName}>{item.itemName}</Text>
-        <Text style={styles.quantity}>
-          Quantidade: <Text style={styles.quantityNumber}>{item.quantity}</Text>
-        </Text>
-      </View>
-
-      {/* Carreta (apenas para saídas) */}
       {item.type === 'exit' && item.truckPlate && (
-        <View style={styles.truckSection}>
-          <Text style={styles.truckLabel}>Carreta:</Text>
+        <View style={styles.truckBadge}>
+          <Text style={styles.truckLabel}>Logística:</Text>
           <LicensePlate plate={item.truckPlate} size="small" />
         </View>
       )}
-
-      {/* Responsável */}
-      <View style={styles.responsibleSection}>
-        <Text style={styles.responsibleLabel}>Responsável:</Text>
-        <Text style={styles.responsibleName}>{item.responsible}</Text>
-      </View>
-
-      {/* Observações (se existir) */}
-      {item.notes && (
-        <View style={styles.notesSection}>
-          <Text style={styles.notesLabel}>Observações:</Text>
-          <Text style={styles.notesText}>{item.notes}</Text>
-        </View>
-      )}
-
-      {/* Horário */}
-      <Text style={styles.timeText}>
-        {item.date ? item.date.toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }) : ''}
-      </Text>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 10 }}>Carregando movimentações...</Text>
+        <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Sincronizando histórico...</Text>
       </View>
     );
   }
 
   return (
-    <View style={globalStyles.container}>
-      <Text style={globalStyles.title}>Histórico de Movimentações</Text>
-
-      {/* Filtros */}
-      <View style={styles.filterContainer}>
-        <Text style={styles.filterLabel}>Filtrar:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
-            style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-            onPress={() => setFilter('all')}
-          >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-              📋 Todas
-            </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Custom Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={{ fontSize: 20 }}>←</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.filterButton, filter === 'entry' && styles.filterButtonActive]}
-            onPress={() => setFilter('entry')}
-          >
-            <Text style={[styles.filterText, filter === 'entry' && styles.filterTextActive]}>
-              📥 Entradas
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.filterButton, filter === 'exit' && styles.filterButtonActive]}
-            onPress={() => setFilter('exit')}
-          >
-            <Text style={[styles.filterText, filter === 'exit' && styles.filterTextActive]}>
-              📤 Saídas
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+          <Text style={styles.headerTitle}>Histórico de Fluxo</Text>
+          <View style={styles.profileIcon}>
+            <Text style={{ fontSize: 14 }}>👤</Text>
+          </View>
+        </View>
       </View>
-
-      {/* Contador */}
-      <Text style={styles.counterText}>
-        Mostrando {filteredMovements.length} de {movements.length} movimentações
-      </Text>
 
       <FlatList
         data={filteredMovements}
         renderItem={renderMovement}
         keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary]}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+        ListHeaderComponent={
+          <View>
+            {/* Stats Summary Bento */}
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Entradas Hoje</Text>
+                <Text style={[styles.statValue, { color: '#15803d' }]}>{stats.entries}</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>Saídas Hoje</Text>
+                <Text style={[styles.statValue, { color: colors.error }]}>{stats.exits}</Text>
+              </View>
+            </View>
+
+            {/* Filter Pills */}
+            <View style={styles.filterContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
+                  onPress={() => setFilter('all')}
+                >
+                  <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>Todas</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterPill, filter === 'entry' && styles.filterPillActive]}
+                  onPress={() => setFilter('entry')}
+                >
+                  <Text style={[styles.filterText, filter === 'entry' && styles.filterTextActive]}>Entradas</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterPill, filter === 'exit' && styles.filterPillActive]}
+                  onPress={() => setFilter('exit')}
+                >
+                  <Text style={[styles.filterText, filter === 'exit' && styles.filterTextActive]}>Saídas</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>📭</Text>
-            <Text style={styles.emptyTitle}>Nenhuma movimentação encontrada</Text>
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>📋</Text>
+            <Text style={styles.emptyTitle}>Sem registros</Text>
             <Text style={styles.emptySubtitle}>
-              {filter === 'all' 
-                ? 'Registre a primeira movimentação!' 
-                : `Nenhuma ${filter === 'entry' ? 'entrada' : 'saída'} encontrada`
-              }
+              Nenhuma movimentação encontrada para o filtro selecionado.
             </Text>
           </View>
         }
       />
-      
+
+      {/* FAB */}
       <TouchableOpacity 
-        style={globalStyles.button}
+        style={styles.fab} 
         onPress={() => navigation.navigate('Movements')}
       >
-        <Text style={globalStyles.buttonText}>➕ Nova Movimentação</Text>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryVariant]}
+          style={styles.fabGradient}
+        >
+          <Text style={{ color: '#fff', fontSize: 28 }}>+</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   header: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surfaceVariant,
+    paddingTop: 25,
+  },
+  headerTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
+    paddingHorizontal: 20,
+    height: 60,
   },
-  typeBadge: {
-    backgroundColor: colors.light,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  typeText: {
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  dateText: {
-    color: colors.gray,
-    fontSize: 12,
-  },
-  itemSection: {
-    marginBottom: 8,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.dark,
-    marginBottom: 4,
-  },
-  quantity: {
-    color: colors.gray,
-    fontSize: 14,
-  },
-  quantityNumber: {
-    fontWeight: 'bold',
-    color: colors.dark,
-  },
-  truckSection: {
-    marginBottom: 8,
-    alignItems: 'flex-start',
-  },
-  truckLabel: {
-    color: colors.gray,
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  responsibleSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  responsibleLabel: {
-    color: colors.gray,
-    fontSize: 12,
-    marginRight: 5,
-  },
-  responsibleName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.dark,
-  },
-  notesSection: {
-    backgroundColor: colors.light,
+  backButton: {
     padding: 8,
-    borderRadius: 6,
-    marginBottom: 8,
   },
-  notesLabel: {
-    color: colors.gray,
-    fontSize: 11,
-    marginBottom: 2,
+  headerTitle: {
+    ...typography.headline,
+    fontSize: 18,
+    color: colors.primary,
   },
-  notesText: {
-    fontSize: 12,
-    color: colors.dark,
+  profileIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.surfaceVariant,
   },
-  timeText: {
-    color: colors.gray,
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    padding: 16,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statLabel: {
+    ...typography.label,
     fontSize: 10,
-    textAlign: 'right',
+    color: colors.secondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    ...typography.headline,
+    fontSize: 28,
   },
   filterContainer: {
-    marginBottom: 15,
+    marginBottom: 24,
   },
-  filterLabel: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: colors.dark,
-  },
-  filterButton: {
-    backgroundColor: colors.light,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  filterPill: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: colors.gray,
+    borderColor: colors.outlineVariant,
   },
-  filterButtonActive: {
+  filterPillActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   filterText: {
-    color: colors.dark,
-    fontWeight: '500',
+    ...typography.label,
+    fontSize: 13,
+    color: colors.onSurfaceVariant,
+    textTransform: 'none',
   },
   filterTextActive: {
-    color: colors.white,
+    color: '#fff',
   },
-  counterText: {
-    textAlign: 'center',
-    color: colors.gray,
-    marginBottom: 15,
+  movementCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  typeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  itemName: {
+    ...typography.title,
+    fontSize: 16,
+    color: colors.onSurface,
+    marginBottom: 2,
+  },
+  responsible: {
+    ...typography.body,
     fontSize: 12,
+    color: colors.secondary,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+  },
+  quantityText: {
+    ...typography.title,
+    fontSize: 17,
+  },
+  timeText: {
+    ...typography.body,
+    fontSize: 11,
+    color: colors.secondary,
+    marginTop: 2,
+  },
+  truckBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceContainerLow,
+    padding: 8,
+    borderRadius: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  truckLabel: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.secondary,
   },
   emptyContainer: {
+    padding: 60,
     alignItems: 'center',
-    marginTop: 50,
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   emptyTitle: {
+    ...typography.title,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.dark,
+    color: colors.onSurface,
     marginBottom: 8,
-    textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: colors.gray,
+    ...typography.body,
+    color: colors.secondary,
     textAlign: 'center',
   },
-};
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabGradient: {
+    flex: 1,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }
+});
 
-export default MovementListScreen;
+export default MovementListScreen;
