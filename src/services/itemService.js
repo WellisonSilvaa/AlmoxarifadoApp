@@ -1,114 +1,86 @@
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  getDoc,
-  getDocs,
-  query,
-  orderBy,
-  where
-} from 'firebase/firestore';
-import { db } from './firebase'
-import { auth } from './firebase';
 
-//import { calculateCurrentStock } from './stockService';
-import { calculateStockFromMovements, needsRestock } from './stockCalculator';
+// src/services/itemService.js
+import { supabase } from './supabase';
 
-// Criar novo item 
+const TABLE_NAME = 'items';
+
+// Criar novo item
 export const createItem = async (itemData) => {
   try {
-    const user = auth.currentUser;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Usuário não autenticado" };
 
-    if (!user) {
-      return { success: false, error: "Usuário não autenticado" };
-    }
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([{
+        name: itemData.name.trim(),
+        description: itemData.description?.trim() || '',
+        photo_url: itemData.photoUrl || '',
+        min_stock: itemData.minStock || 0,
+        current_stock: itemData.currentStock || 0,
+        is_active: true
+      }])
+      .select()
+      .single();
 
-    // Ajustar limite para base64 (1MB = 1.000.000 bytes)
-    if (itemData.photoUrl && itemData.photoUrl.length > 1000000) {
-      return {
-        success: false,
-        error: "Imagem muito grande. Tente uma imagem menor."
-      };
-    }
-
-    const docRef = await addDoc(collection(db, 'items'), {
-      name: itemData.name.trim(),
-      description: itemData.description?.trim() || '',
-      photoUrl: itemData.photoUrl || '',
-      minStock: itemData.minStock || 0,
-      currentStock: itemData.currentStock || 0,
-      createdAt: new Date(),
-      createdBy: user.uid,
-      isActive: true
-    });
-
-    return {
-      success: true,
-      id: docRef.id,
-      message: "Item cadastrado com sucesso!"
-    };
+    if (error) throw error;
+    return { success: true, id: data.id, message: "Item cadastrado com sucesso!" };
   } catch (error) {
     console.error("Erro ao criar item:", error);
-
-    // Mensagem mais específica sobre permissões
-    if (error.code === 'permission-denied') {
-      return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
-    }
-
     return { success: false, error: "Erro ao cadastrar item." };
   }
 };
 
-//Buscar todos os itens
-
+// Obter todos os itens (Otimizado)
 export const getItems = async () => {
   try {
-    const q = query(
-      collection(db, 'items'), 
-      where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const items = [];
-    
-    for (const doc of querySnapshot.docs) {
-      const data = doc.data();
-      
-      // 👇 CALCULAR ESTOQUE DIRETAMENTE
-      const movementsQuery = query(
-        collection(db, 'movements'), 
-        where('itemId', '==', doc.id),
-        where('isActive', '==', true)
-      );
-      
-      const movementsSnapshot = await getDocs(movementsQuery);
-      let currentStock = 0;
-      
-      movementsSnapshot.forEach(movementDoc => {
-        const movementData = movementDoc.data();
-        if (movementData.type === 'entry') {
-          currentStock += movementData.quantity;
-        } else if (movementData.type === 'exit') {
-          currentStock -= movementData.quantity;
-        }
-      });
-      
-      items.push({
-        id: doc.id,
-        ...data,
-        currentStock: currentStock,
-        needsRestock: needsRestock(currentStock, data.minStock || 0),
-        createdAt: data.createdAt 
-          ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
-          : new Date()
-      });
-    }
+    console.log('--- Iniciando busca Supabase de itens ---');
+    const start = Date.now();
 
-    return { success: true, data: items };
+    // 1. Buscar itens (is_active: true)
+    const { data: items, error: itemsError } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (itemsError) throw itemsError;
+
+    // 2. Buscar movimentações para calcular estoque real
+    const { data: movements, error: movementsError } = await supabase
+      .from('movements')
+      .select('item_id, type, quantity');
+
+    if (movementsError) throw movementsError;
+
+    // 3. Mapear movimentações
+    const movementsMap = {};
+    movements.forEach(m => {
+      if (!movementsMap[m.item_id]) movementsMap[m.item_id] = 0;
+      if (m.type === 'entry') movementsMap[m.item_id] += m.quantity;
+      else if (m.type === 'exit') movementsMap[m.item_id] -= m.quantity;
+    });
+
+    // 4. Processar itens
+    const processedItems = items.map(item => {
+      const calculatedStock = movementsMap[item.id] || 0;
+      return {
+        ...item,
+        isActive: item.is_active,     // Mapeamento crucial
+        photoUrl: item.photo_url,     // Compatibilidade com frontend
+        currentStock: calculatedStock,
+        minStock: item.min_stock,
+        needsRestock: calculatedStock <= (item.min_stock || 0),
+        createdAt: new Date(item.created_at)
+      };
+    });
+
+    const end = Date.now();
+    console.log(`--- Busca Supabase finalizada em ${end - start}ms ---`);
+
+    return { success: true, data: processedItems };
   } catch (error) {
-    console.error("Erro detalhado ao buscar itens:", error);
+    console.error("Erro ao buscar itens no Supabase:", error);
     return { success: false, error: "Erro ao carregar itens." };
   }
 };
@@ -116,58 +88,46 @@ export const getItems = async () => {
 // Buscar item por ID
 export const getItemById = async (id) => {
   try {
-    const itemRef = doc(db, 'items', id);
-    const docSnap = await getDoc(itemRef);
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return {
-        success: true,
-        data: {
-          id: docSnap.id,
-          ...data,
-          createdAt: data.createdAt
-            ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
-            : new Date()
-        }
-      };
-    } else {
-      return { success: false, error: "Item não encontrado" };
-    }
+    if (error) throw error;
+    
+    return {
+      success: true,
+      data: {
+        ...data,
+        isActive: data.is_active,
+        photoUrl: data.photo_url,
+        currentStock: data.current_stock,
+        minStock: data.min_stock,
+        createdAt: new Date(data.created_at)
+      }
+    };
   } catch (error) {
-    console.error("Erro ao buscar item:", error);
-    return { success: false, error: "Erro ao carregar item." };
+    return { success: false, error: "Item não encontrado" };
   }
 };
 
 // Atualizar item
 export const updateItem = async (id, itemData) => {
   try {
-    console.log('Atualizando item', id, itemData);
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update({
+        name: itemData.name.trim(),
+        description: itemData.description?.trim() || '',
+        photo_url: itemData.photoUrl || '',
+        is_active: itemData.isActive !== undefined ? itemData.isActive : true
+      })
+      .eq('id', id);
 
-    const itemRef = doc(db, 'items', id);
-
-    const updateData = {
-      name: itemData.name.trim(),
-      description: itemData.description?.trim() || '',
-      photoUrl: itemData.photoUrl || '',
-      isActive: itemData.isActive !== undefined ? itemData.isActive : true,
-      updatedAt: new Date() // 👈 Adicionar campo de atualização
-    };
-
-    await updateDoc(itemRef, updateData);
-
-    return {
-      success: true,
-      message: "Item atualizado com sucesso!"
-    };
+    if (error) throw error;
+    return { success: true, message: "Item atualizado com sucesso!" };
   } catch (error) {
-    console.error("Erro ao atualizar item:", error);
-
-    if (error.code === 'permission-denied') {
-      return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
-    }
-
     return { success: false, error: "Erro ao atualizar item." };
   }
 };
@@ -175,22 +135,14 @@ export const updateItem = async (id, itemData) => {
 // Deletar item (desativar)
 export const deleteItem = async (id) => {
   try {
-    const itemRef = doc(db, 'items', id);
-    await updateDoc(itemRef, {
-      isActive: false,
-      deletedAt: new Date()
-    });
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update({ is_active: false })
+      .eq('id', id);
 
+    if (error) throw error;
     return { success: true, message: "Item desativado com sucesso!" };
   } catch (error) {
-    console.error("Erro ao desativar item:", error);
-
-    if (error.code === 'permission-denied') {
-      return { success: false, error: "Permissão negada. Verifique as regras do Firestore." };
-    }
-
     return { success: false, error: "Erro ao desativar item." };
   }
 };
-
-

@@ -1,3 +1,5 @@
+
+// src/screens/EditItemScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -19,9 +21,11 @@ import { getItemById, updateItem } from '../services/itemService';
 import { uploadImage } from '../utils/storageUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const EditItemScreen = ({ route, navigation }) => {
   const { itemId } = route.params;
+  const { refreshData } = useData();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -118,13 +122,14 @@ const EditItemScreen = ({ route, navigation }) => {
       });
 
       if (result.success) {
-        Alert.alert('Sucesso', 'Item atualizado com sucesso!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        refreshData(); // ⚡ Background sync
+        navigation.goBack(); // 🚄 Instant navigation
       } else {
         Alert.alert('Erro', result.error);
+        setSaving(false);
       }
     } catch (error) {
       Alert.alert('Erro', 'Falha ao salvar alterações.');
-    } finally {
       setSaving(false);
     }
   };
@@ -148,9 +153,8 @@ const EditItemScreen = ({ route, navigation }) => {
           <Text style={styles.headerTitle}>Editar Produto</Text>
           <View style={{ width: 40 }} />
       </View>
-
+ 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Image Hero */}
         <TouchableOpacity style={styles.heroImageContainer} onPress={handleImagePress}>
           <Image 
             source={{ uri: image || currentImageUrl || 'https://via.placeholder.com/400' }} 
@@ -277,4 +281,4 @@ const styles = StyleSheet.create({
   cancelText: { ...typography.label, color: colors.secondary, fontSize: 16 },
 });
 
-export default EditItemScreen;
+export default EditItemScreen;

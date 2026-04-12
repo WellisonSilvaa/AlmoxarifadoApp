@@ -1,10 +1,11 @@
+
+// src/screens/ItemListScreen.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
     FlatList,
     TouchableOpacity,
-    Alert,
     ActivityIndicator,
     Image,
     RefreshControl,
@@ -14,46 +15,27 @@ import {
     Dimensions,
     Platform
 } from 'react-native';
-import { globalStyles, colors, typography } from '../styles/global';
-import { getItems } from '../services/itemService';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // 👈 Adicionado useSafeAreaInsets
+import { colors, typography } from '../styles/global';
 import { getImageUrl } from '../utils/storageUtils';
-import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
 const ItemListScreen = ({ navigation }) => {
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const insets = useSafeAreaInsets(); // 👈 Obtendo insets
+    const { items: contextItems, refreshData, loading: globalLoading } = useData();
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const loadItems = async () => {
-        try {
-            const result = await getItems();
-            if (result.success) {
-                setItems(result.data);
-            } else {
-                Alert.alert('Erro', result.error);
-            }
-        } catch (error) {
-            Alert.alert('Erro', 'Não foi possível carregar os itens');
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
-
-    useFocusEffect(
-        useCallback(() => {
-            loadItems();
-        }, [])
-    );
-
-    const onRefresh = () => {
+    const onRefresh = async () => {
         setRefreshing(true);
-        loadItems();
+        await refreshData();
+        setRefreshing(false);
     };
+
+    const items = contextItems;
 
     const filteredItems = useMemo(() => {
         return items.filter(item => 
@@ -83,7 +65,7 @@ const ItemListScreen = ({ navigation }) => {
                         />
                     ) : (
                         <View style={styles.placeholderImage}>
-                            <Text style={{ fontSize: 24 }}>📦</Text>
+                            <Text style={styles.placeholderEmoji}>📦</Text>
                         </View>
                     )}
                 </View>
@@ -127,28 +109,19 @@ const ItemListScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Sincronizando inventário...</Text>
-            </View>
-        );
-    }
-
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top']}>
             <StatusBar barStyle="dark-content" />
             
             {/* Custom Header */}
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={{ fontSize: 20 }}>←</Text>
+                        <Text style={styles.backIconText}>←</Text>
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Gerenciamento de Itens</Text>
                     <View style={styles.profileIcon}>
-                        <Text style={{ fontSize: 14 }}>👤</Text>
+                        <Text style={styles.profileEmoji}>👤</Text>
                     </View>
                 </View>
             </View>
@@ -157,7 +130,10 @@ const ItemListScreen = ({ navigation }) => {
                 data={filteredItems}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
-                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+                contentContainerStyle={[
+                    styles.listContent, 
+                    { paddingBottom: 100 + insets.bottom } // 👈 Ajuste dinâmico
+                ]}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
                 }
@@ -198,7 +174,7 @@ const ItemListScreen = ({ navigation }) => {
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={{ fontSize: 40, marginBottom: 16 }}>🔎</Text>
+                        <Text style={styles.emptyEmoji}>🔎</Text>
                         <Text style={styles.emptyText}>
                             {searchQuery ? 'Nenhum item corresponde à busca.' : 'Nenhum item cadastrado ainda.'}
                         </Text>
@@ -208,17 +184,20 @@ const ItemListScreen = ({ navigation }) => {
 
             {/* FAB */}
             <TouchableOpacity 
-                style={styles.fab} 
+                style={[
+                    styles.fab,
+                    { bottom: 30 + insets.bottom } // 👈 Posicionamento inteligente
+                ]} 
                 onPress={() => navigation.navigate('ItemForm')}
             >
                 <LinearGradient
                     colors={[colors.primary, colors.primaryVariant]}
                     style={styles.fabGradient}
                 >
-                    <Text style={{ color: '#fff', fontSize: 28 }}>+</Text>
+                    <Text style={styles.fabIcon}>+</Text>
                 </LinearGradient>
             </TouchableOpacity>
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -231,7 +210,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.8)',
         borderBottomWidth: 1,
         borderBottomColor: colors.surfaceVariant,
-        paddingTop: 25,
     },
     headerTop: {
         flexDirection: 'row',
@@ -242,6 +220,9 @@ const styles = StyleSheet.create({
     },
     backButton: {
         padding: 8,
+    },
+    backIconText: {
+        fontSize: 20,
     },
     headerTitle: {
         ...typography.headline,
@@ -257,6 +238,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.surfaceVariant,
+    },
+    profileEmoji: {
+        fontSize: 14,
+    },
+    listContent: {
+        padding: 20,
+        // paddingBottom definido dinamicamente no componente
     },
     searchContainer: {
         flexDirection: 'row',
@@ -286,19 +274,6 @@ const styles = StyleSheet.create({
         ...typography.body,
         fontSize: 15,
         color: colors.onSurface,
-    },
-    filterButton: {
-        width: 56,
-        height: 56,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
     },
     bentoStats: {
         flexDirection: 'row',
@@ -385,6 +360,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    placeholderEmoji: {
+        fontSize: 24,
+    },
     infoContainer: {
         flex: 1,
         justifyContent: 'space-between',
@@ -440,6 +418,10 @@ const styles = StyleSheet.create({
         padding: 60,
         alignItems: 'center',
     },
+    emptyEmoji: {
+        fontSize: 40,
+        marginBottom: 16,
+    },
     emptyText: {
         ...typography.body,
         color: colors.secondary,
@@ -448,7 +430,6 @@ const styles = StyleSheet.create({
     fab: {
         position: 'absolute',
         right: 20,
-        bottom: 30,
         width: 64,
         height: 64,
         borderRadius: 32,
@@ -463,7 +444,11 @@ const styles = StyleSheet.create({
         borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    fabIcon: {
+        color: '#fff',
+        fontSize: 28,
     }
 });
 
-export default ItemListScreen;
+export default ItemListScreen;

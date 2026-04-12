@@ -1,4 +1,4 @@
-// App.js
+
 import React, { useState, useEffect, useCallback } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
@@ -6,13 +6,17 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-goog
 import AppNavigator from './src/navigation/AppNavigator';
 import { View } from 'react-native';
 import CustomSplashScreen from './src/components/CustomSplashScreen';
+import { DataProvider, useData } from './src/context/DataContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Manter a splash screen nativa visível até estarmos prontos
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function AppContent() {
   const [appIsReady, setAppIsReady] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('Inicializando...');
+  const { refreshData, user: contextUser, authInitialized, hasInitialData } = useData();
 
   const [fontsLoaded] = useFonts({
     'Manrope_400Regular': Manrope_400Regular,
@@ -27,36 +31,40 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulação de carregamento de recursos/progresso
-        for (let i = 0; i <= 100; i += 5) {
-          setProgress(i / 100);
-          await new Promise(resolve => setTimeout(resolve, 50));
+        if (!fontsLoaded || !authInitialized) return;
+        
+        // Se estiver logado e ainda NÃO buscou dados, força a volta da splash e busca
+        if (contextUser && !hasInitialData) {
+          setAppIsReady(false);
+          setStatusMessage('Sincronizando dados...');
+          await refreshData((p, msg) => {
+            setProgress(0.2 + (p * 0.8));
+            setStatusMessage(msg);
+          });
         }
+        
+        setProgress(1.0);
+        setStatusMessage('Tudo pronto!');
+
       } catch (e) {
-        console.warn(e);
+        console.warn('Erro na inicialização:', e);
       } finally {
-        if (fontsLoaded) {
-          setAppIsReady(true);
+        if (fontsLoaded && authInitialized && (!contextUser || hasInitialData)) {
+          setTimeout(() => {
+            setAppIsReady(true);
+            SplashScreen.hideAsync();
+          }, 350);
         }
       }
     }
 
     prepare();
-  }, [fontsLoaded]);
-
-  useEffect(() => {
-    async function hideNativeSplash() {
-      if (fontsLoaded) {
-        await SplashScreen.hideAsync();
-      }
-    }
-    hideNativeSplash();
-  }, [fontsLoaded]);
+  }, [fontsLoaded, authInitialized, contextUser, hasInitialData]);
 
   if (!appIsReady) {
     return (
       <View style={{ flex: 1 }}>
-        <CustomSplashScreen progress={progress} />
+        <CustomSplashScreen progress={progress} statusMessage={statusMessage} />
       </View>
     );
   }
@@ -66,4 +74,14 @@ export default function App() {
       <AppNavigator />
     </View>
   );
-}
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <DataProvider>
+        <AppContent />
+      </DataProvider>
+    </SafeAreaProvider>
+  );
+}

@@ -1,56 +1,36 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+// src/screens/TruckListScreen.js
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
-  Image,
   RefreshControl,
   StyleSheet,
   TextInput,
   StatusBar,
   Dimensions,
-  Platform
 } from 'react-native';
-import { globalStyles, colors, typography } from '../styles/global';
-import { getTrucks } from '../services/truckService';
-import { getImageUrl } from '../utils/storageUtils';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, typography } from '../styles/global';
 import { LinearGradient } from 'expo-linear-gradient';
 import LicensePlate from '../components/LicensePlate';
+import { useData } from '../context/DataContext'; // 👈 Importando useData
 
 const { width } = Dimensions.get('window');
 
 const TruckListScreen = ({ navigation }) => {
-  const [trucks, setTrucks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
+  const { trucks, loading, refreshData } = useData(); // 👈 Consumindo do context
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadTrucks = async () => {
-    try {
-      const result = await getTrucks();
-      if (result.success) {
-        setTrucks(result.data);
-      } else {
-        Alert.alert('Erro', result.error);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as carretas');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadTrucks();
-  }, []);
-
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadTrucks();
+    await refreshData();
+    setRefreshing(false);
   };
 
   const filteredTrucks = useMemo(() => {
@@ -114,28 +94,27 @@ const TruckListScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (loading && trucks.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Sincronizando frota...</Text>
+        <Text style={styles.loadingText}>Sincronizando frota...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
-      {/* Custom Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={{ fontSize: 20 }}>←</Text>
+            <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Gestão de Frota</Text>
           <View style={styles.profileIcon}>
-            <Text style={{ fontSize: 14 }}>👤</Text>
+            <Text style={styles.profileEmoji}>👤</Text>
           </View>
         </View>
       </View>
@@ -144,13 +123,15 @@ const TruckListScreen = ({ navigation }) => {
         data={filteredTrucks}
         renderItem={renderTruck}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={[
+            styles.listContent, 
+            { paddingBottom: 100 + insets.bottom }
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
         ListHeaderComponent={
           <View>
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
               <View style={styles.searchWrapper}>
                 <Text style={styles.searchIcon}>🔍</Text>
@@ -164,7 +145,6 @@ const TruckListScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Stats Bento */}
             <View style={styles.bentoStats}>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Total de Carretas</Text>
@@ -181,7 +161,7 @@ const TruckListScreen = ({ navigation }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={{ fontSize: 40, marginBottom: 16 }}>🚚</Text>
+            <Text style={styles.emptyEmoji}>🚚</Text>
             <Text style={styles.emptyText}>
               {searchQuery ? 'Nenhuma carreta corresponde à busca.' : 'Nenhuma carreta cadastrada ainda.'}
             </Text>
@@ -189,19 +169,21 @@ const TruckListScreen = ({ navigation }) => {
         }
       />
 
-      {/* FAB */}
       <TouchableOpacity 
-        style={styles.fab} 
+        style={[
+            styles.fab,
+            { bottom: 30 + insets.bottom }
+        ]} 
         onPress={() => navigation.navigate('TruckForm')}
       >
         <LinearGradient
           colors={[colors.primary, colors.primaryVariant]}
           style={styles.fabGradient}
         >
-          <Text style={{ color: '#fff', fontSize: 28 }}>+</Text>
+          <Text style={styles.fabIcon}>+</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -210,11 +192,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    marginTop: 15,
+    color: colors.secondary,
+    fontFamily: 'Manrope_600SemiBold',
+  },
   header: {
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
   },
   headerTop: {
     flexDirection: 'row',
@@ -225,6 +217,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  backIconText: {
+    fontSize: 20,
   },
   headerTitle: {
     ...typography.headline,
@@ -240,6 +235,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.surfaceVariant,
+  },
+  profileEmoji: {
+    fontSize: 14,
+  },
+  listContent: {
+    padding: 20,
   },
   searchContainer: {
     marginBottom: 24,
@@ -378,6 +379,10 @@ const styles = StyleSheet.create({
     padding: 60,
     alignItems: 'center',
   },
+  emptyEmoji: {
+    fontSize: 40,
+    marginBottom: 16,
+  },
   emptyText: {
     ...typography.body,
     color: colors.secondary,
@@ -386,7 +391,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 30,
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -401,7 +405,11 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fabIcon: {
+    color: '#fff',
+    fontSize: 28,
   }
 });
 
-export default TruckListScreen;
+export default TruckListScreen;

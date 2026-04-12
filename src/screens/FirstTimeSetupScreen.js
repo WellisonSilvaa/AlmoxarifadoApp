@@ -1,5 +1,6 @@
+
 // src/screens/FirstTimeSetupScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,8 +12,6 @@ import {
 } from 'react-native';
 import { globalStyles, colors } from '../styles/global';
 import { registerUser } from '../services/authService';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
 
 const FirstTimeSetupScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -20,10 +19,22 @@ const FirstTimeSetupScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingUsers, setCheckingUsers] = useState(true);
 
-  // Verificar se já existem usuários no sistema
-
+  const validateForm = () => {
+    if (!name || !email || !password || !confirmPassword) {
+      Alert.alert('Erro', 'Todos os campos são obrigatórios');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas não coincidem');
+      return false;
+    }
+    if (password.length < 6) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      return false;
+    }
+    return true;
+  };
 
   const handleSetup = async () => {
     if (!validateForm()) return;
@@ -31,7 +42,7 @@ const FirstTimeSetupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // Criar primeiro admin com role 'admin'
+      // Criar primeiro admin no Supabase
       const result = await registerUser(email, password, name, 'admin');
       
       if (result.success) {
@@ -41,7 +52,7 @@ const FirstTimeSetupScreen = ({ navigation }) => {
           [
             {
               text: 'OK',
-              onPress: () => navigation.replace('Home')
+              onPress: () => navigation.replace('Login')
             }
           ]
         );
@@ -55,21 +66,10 @@ const FirstTimeSetupScreen = ({ navigation }) => {
     }
   };
 
-  // if (checkingUsers) {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-  //       <ActivityIndicator size="large" color={colors.primary} />
-  //       <Text style={{ marginTop: 10 }}>Verificando configuração inicial...</Text>
-  //     </View>
-  //   );
-  // }
-
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View style={[globalStyles.container, { justifyContent: 'center' }]}>
-        <Text style={globalStyles.title}>
-          Configuração Inicial
-        </Text>
+        <Text style={globalStyles.title}>Configuração Inicial</Text>
 
         <Text style={{
           textAlign: 'center',
@@ -80,7 +80,6 @@ const FirstTimeSetupScreen = ({ navigation }) => {
           Bem-vindo! Crie o primeiro usuário administrador do sistema.
         </Text>
 
-        {/* Formulário igual ao de registro */}
         <TextInput
           style={globalStyles.input}
           placeholder="Nome completo"

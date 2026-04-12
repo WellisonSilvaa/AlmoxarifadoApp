@@ -1,68 +1,59 @@
+
 // src/services/employeeService.js
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  query,
-  orderBy 
-} from 'firebase/firestore';
-import { db } from './firebase';
-import { auth } from './firebase';
+import { supabase } from './supabase';
+
+const TABLE_NAME = 'employees';
 
 // Criar novo funcionário
 export const createEmployee = async (employeeData) => {
   try {
-    const user = auth.currentUser;
-    
-    if (!user) {
-      return { success: false, error: "Usuário não autenticado" };
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Usuário não autenticado" };
 
-    const docRef = await addDoc(collection(db, 'employees'), {
-      ...employeeData,
-      createdAt: new Date(),
-      createdBy: user.uid,
-      isActive: true
-    });
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([{
+        name: employeeData.name,
+        email: employeeData.email,
+        department: employeeData.department,
+        position: employeeData.position,
+        is_active: true
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     return { 
       success: true, 
-      id: docRef.id, 
+      id: data.id, 
       message: "Funcionário cadastrado com sucesso!" 
     };
   } catch (error) {
-    console.error("Erro ao criar funcionário:", error);
-    let errorMessage = "Erro ao cadastrar funcionário. Tente novamente.";
-    
-    if (error.code === 'permission-denied') {
-      errorMessage = "Permissão negada. Verifique as regras do Firestore.";
-    }
-    
-    return { success: false, error: errorMessage };
+    console.error("Erro ao criar funcionário no Supabase:", error);
+    return { success: false, error: "Erro ao cadastrar funcionário." };
   }
 };
 
 // Buscar todos os funcionários
 export const getEmployees = async () => {
   try {
-    const q = query(
-      collection(db, 'employees'),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const employees = [];
-    
-    querySnapshot.forEach((doc) => {
-      employees.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return { success: true, data: employees };
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { 
+      success: true, 
+      data: data.map(e => ({
+        ...e,
+        isActive: e.is_active
+      }))
+    };
   } catch (error) {
-    console.error("Erro ao buscar funcionários:", error);
+    console.error("Erro ao buscar funcionários no Supabase:", error);
     return { success: false, error: "Erro ao carregar funcionários." };
   }
 };
@@ -70,12 +61,14 @@ export const getEmployees = async () => {
 // Atualizar funcionário
 export const updateEmployee = async (id, employeeData) => {
   try {
-    const employeeRef = doc(db, 'employees', id);
-    await updateDoc(employeeRef, employeeData);
-    
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update(employeeData)
+      .eq('id', id);
+
+    if (error) throw error;
     return { success: true, message: "Funcionário atualizado com sucesso!" };
   } catch (error) {
-    console.error("Erro ao atualizar funcionário:", error);
     return { success: false, error: "Erro ao atualizar funcionário." };
   }
 };
@@ -83,12 +76,14 @@ export const updateEmployee = async (id, employeeData) => {
 // Deletar funcionário (desativar)
 export const deleteEmployee = async (id) => {
   try {
-    const employeeRef = doc(db, 'employees', id);
-    await updateDoc(employeeRef, { isActive: false });
-    
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update({ is_active: false })
+      .eq('id', id);
+
+    if (error) throw error;
     return { success: true, message: "Funcionário desativado com sucesso!" };
   } catch (error) {
-    console.error("Erro ao desativar funcionário:", error);
     return { success: false, error: "Erro ao desativar funcionário." };
   }
 };

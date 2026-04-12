@@ -1,3 +1,5 @@
+
+// src/screens/MovementScreen.js
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -14,18 +16,12 @@ import {
 } from 'react-native';
 import { colors, typography } from '../styles/global';
 import { createMovement } from '../services/movementService';
-import { getItems } from '../services/itemService';
-import { getTrucks } from '../services/truckService';
-import { auth, db } from '../services/firebase';
-import { 
-  query, 
-  collection, 
-  where, 
-  getDocs 
-} from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
+import SearchableSelector from '../components/SearchableSelector';
+import { useData } from '../context/DataContext';
 
 const MovementScreen = ({ navigation }) => {
+  const { user, items, trucks, refreshData } = useData();
   const [loading, setLoading] = useState(false);
   const [currentStock, setCurrentStock] = useState(0);
 
@@ -36,61 +32,31 @@ const MovementScreen = ({ navigation }) => {
   const [selectedTruck, setSelectedTruck] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Listas de dados
-  const [items, setItems] = useState([]);
-  const [trucks, setTrucks] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const responsible = user?.email || 'Usuário Logado';
 
-  const currentUser = auth.currentUser;
-  const responsible = currentUser?.email || 'Usuário Logado';
-
-  const loadItemStock = async (itemId) => {
-    try {
-      const stockQuery = query(
-        collection(db, 'movements'),
-        where('itemId', '==', itemId),
-        where('isActive', '==', true)
-      );
-      const movementsSnapshot = await getDocs(stockQuery);
-      let stock = 0;
-      movementsSnapshot.forEach(doc => {
-        const movement = doc.data();
-        if (movement.type === 'entry') stock += movement.quantity;
-        else if (movement.type === 'exit') stock -= movement.quantity;
-      });
-      setCurrentStock(stock);
-    } catch (error) {
+  // Sincronizar stock local com o que temos no contexto para o item selecionado
+  useEffect(() => {
+    if (selectedItem) {
+      const item = items.find(i => i.id === selectedItem);
+      setCurrentStock(item ? item.currentStock : 0);
+    } else {
       setCurrentStock(0);
     }
-  };
-
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedItem) loadItemStock(selectedItem);
-    else setCurrentStock(0);
-  }, [selectedItem]);
-
-  const loadInitialData = async () => {
-    try {
-      const [itemsResult, trucksResult] = await Promise.all([getItems(), getTrucks()]);
-      if (itemsResult.success) setItems(itemsResult.data);
-      if (trucksResult.success) setTrucks(trucksResult.data);
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os dados');
-    } finally {
-      setLoadingData(false);
-    }
-  };
+  }, [selectedItem, items]);
 
   const handleSubmit = async () => {
+    const qtyInt = parseInt(quantity);
+
     if (!selectedItem) return Alert.alert('Atenção', 'Selecione um item.');
-    if (!quantity || quantity <= 0) return Alert.alert('Atenção', 'Informe uma quantidade válida.');
-    if (movementType === 'exit' && !selectedTruck) return Alert.alert('Atenção', 'Selecione uma carreta para saída.');
-    if (movementType === 'exit' && currentStock < parseInt(quantity)) {
-      return Alert.alert('Estoque Insuficiente', `Saldo atual: ${currentStock}`);
+    if (!quantity || isNaN(qtyInt) || qtyInt <= 0) {
+      return Alert.alert('Atenção', 'Informe uma quantidade válida (número positivo).');
+    }
+    
+    if (movementType === 'exit') {
+      if (!selectedTruck) return Alert.alert('Atenção', 'Selecione uma carreta para saída.');
+      if (currentStock < qtyInt) {
+        return Alert.alert('Estoque Insuficiente', `Saldo disponível: ${currentStock}`);
+      }
     }
 
     setLoading(true);
@@ -102,7 +68,7 @@ const MovementScreen = ({ navigation }) => {
         type: movementType,
         itemId: item.id,
         itemName: item.name,
-        quantity: parseInt(quantity),
+        quantity: qtyInt,
         truckId: truck?.id || '',
         truckPlate: truck?.plate || '',
         responsible: responsible,
@@ -111,26 +77,22 @@ const MovementScreen = ({ navigation }) => {
       });
 
       if (result.success) {
+        refreshData(); // ⚡ Background Sync
         Alert.alert('Concluído', 'Movimentação registrada com sucesso!', [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       } else {
         Alert.alert('Erro', result.error);
+        setLoading(false);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao registrar.');
-    } finally {
+      Alert.alert('Erro', 'Falha ao registrar movimentação.');
       setLoading(false);
     }
   };
 
-  if (loadingData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+  const [itemModalVisible, setItemModalVisible] = useState(false);
+  const [truckModalVisible, setTruckModalVisible] = useState(false);
 
   return (
     <KeyboardAvoidingView 
@@ -174,58 +136,56 @@ const MovementScreen = ({ navigation }) => {
           {/* Item Selector */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Produto *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemStrip}>
-              {items.map(item => (
-                <TouchableOpacity 
-                  key={item.id} 
-                  style={[styles.itemCard, selectedItem === item.id && styles.itemCardSelected]}
-                  onPress={() => setSelectedItem(item.id)}
-                >
-                  <Text style={[styles.itemCardName, selectedItem === item.id && styles.whiteText]}>{item.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <TouchableOpacity 
+              style={[styles.selectorButton, selectedItem && styles.selectorButtonActive]}
+              onPress={() => setItemModalVisible(true)}
+            >
+              <Text style={[styles.selectorButtonText, selectedItem && styles.selectorButtonTextActive]}>
+                {selectedItem ? items.find(i => i.id === selectedItem)?.name : 'Selecionar Produto...'}
+              </Text>
+              <Text style={styles.selectorIcon}>🔍</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Stock & Quantity */}
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Quantidade *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0"
-                keyboardType="numeric"
-                value={quantity}
-                onChangeText={setQuantity}
-                editable={!loading}
-              />
+          <View style={styles.inputGroup}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+                <Text style={styles.label}>Quantidade *</Text>
+                {selectedItem && (
+                    <View style={styles.miniStockBadge}>
+                        <Text style={styles.miniStockLabel}>Disponível: </Text>
+                        <Text style={[styles.miniStockValue, currentStock < parseInt(quantity || 0) && movementType === 'exit' && {color: colors.error, fontWeight: 'bold'}]}>
+                           {currentStock}
+                        </Text>
+                    </View>
+                )}
             </View>
-            {selectedItem && (
-              <View style={styles.stockBadge}>
-                <Text style={styles.stockLabel}>Saldo Atual</Text>
-                <Text style={[styles.stockValue, currentStock < parseInt(quantity || 0) && movementType === 'exit' && {color: colors.error}]}>
-                  {currentStock}
-                </Text>
-              </View>
-            )}
+            <TextInput
+            style={[
+                styles.input, 
+                currentStock < parseInt(quantity || 0) && movementType === 'exit' && { borderColor: colors.error, borderWidth: 2 }
+            ]}
+            placeholder="0"
+            keyboardType="numeric"
+            value={quantity}
+            onChangeText={(val) => setQuantity(val.replace(/[^0-9]/g, ''))}
+            editable={!loading}
+            />
           </View>
 
           {/* Truck Selector (Exit only) */}
           {movementType === 'exit' && (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Destino (Carreta) *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemStrip}>
-                {trucks.map(truck => (
-                  <TouchableOpacity 
-                    key={truck.id} 
-                    style={[styles.itemCard, selectedTruck === truck.id && styles.itemCardSelected]}
-                    onPress={() => setSelectedTruck(truck.id)}
-                  >
-                    <Text style={[styles.itemCardName, selectedTruck === truck.id && styles.whiteText]}>{truck.plate}</Text>
-                    <Text style={[styles.itemCardSub, selectedTruck === truck.id && styles.whiteText]}>{truck.brand}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <TouchableOpacity 
+                style={[styles.selectorButton, selectedTruck && styles.selectorButtonActive]}
+                onPress={() => setTruckModalVisible(true)}
+              >
+                <Text style={[styles.selectorButtonText, selectedTruck && styles.selectorButtonTextActive]}>
+                  {selectedTruck ? trucks.find(t => t.id === selectedTruck)?.plate : 'Selecionar Carreta...'}
+                </Text>
+                <Text style={styles.selectorIcon}>🚛</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -258,6 +218,27 @@ const MovementScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modais de Busca */}
+      <SearchableSelector
+        visible={itemModalVisible}
+        onClose={() => setItemModalVisible(false)}
+        onSelect={(item) => setSelectedItem(item.id)}
+        items={items}
+        title="Buscar Produto"
+        placeholder="Digite o nome do item..."
+      />
+
+      <SearchableSelector
+        visible={truckModalVisible}
+        onClose={() => setTruckModalVisible(false)}
+        onSelect={(truck) => setSelectedTruck(truck.id)}
+        items={trucks}
+        title="Buscar Carreta"
+        placeholder="Digite a placa ou marca..."
+        itemLabelKey="plate"
+        itemSubLabelKey="brand"
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -304,20 +285,34 @@ const styles = StyleSheet.create({
   form: { paddingHorizontal: 24 },
   inputGroup: { marginBottom: 24 },
   label: { ...typography.label, fontSize: 13, color: colors.onSurface, marginBottom: 12 },
-  itemStrip: { flexDirection: 'row' },
-  itemCard: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  selectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
+    height: 56,
     borderRadius: 16,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#ddd',
-    marginRight: 10,
-    justifyContent: 'center',
   },
-  itemCardSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  itemCardName: { ...typography.title, fontSize: 14, color: colors.onSurface },
-  itemCardSub: { ...typography.body, fontSize: 10, color: colors.secondary },
+  selectorButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '05',
+  },
+  selectorButtonText: {
+    ...typography.body,
+    fontSize: 15,
+    color: colors.secondary,
+  },
+  selectorButtonTextActive: {
+    color: colors.primary,
+    fontFamily: 'Manrope_700Bold',
+  },
+  selectorIcon: {
+    fontSize: 18,
+    color: colors.secondary,
+  },
   whiteText: { color: '#fff' },
   row: { flexDirection: 'row', gap: 16, marginBottom: 24, alignItems: 'flex-start' },
   input: {
@@ -328,21 +323,13 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     ...typography.body,
   },
-  stockBadge: {
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  stockLabel: { ...typography.label, fontSize: 10, color: colors.secondary, marginBottom: 4 },
-  stockValue: { ...typography.headline, fontSize: 20, color: colors.secondary },
+  miniStockBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceContainerLow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  miniStockLabel: { ...typography.label, fontSize: 10, color: colors.secondary, textTransform: 'none' },
+  miniStockValue: { ...typography.title, fontSize: 12, color: colors.onSurface },
   textArea: { height: 100, textAlignVertical: 'top' },
   footer: { paddingHorizontal: 24, marginTop: 12 },
   gradientButton: { height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
   buttonText: { ...typography.label, fontSize: 16, color: '#fff' },
 });
 
-export default MovementScreen;
+export default MovementScreen;

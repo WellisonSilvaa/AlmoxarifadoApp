@@ -1,3 +1,4 @@
+
 // src/screens/HomeScreen.js
 import React, { useState, useCallback } from 'react';
 import {
@@ -10,84 +11,45 @@ import {
   RefreshControl,
   StyleSheet,
   StatusBar,
-  Image,
   Dimensions,
   Platform
 } from 'react-native';
-import { globalStyles, colors, typography } from '../styles/global';
-import { auth } from '../services/firebase';
-import { logoutUser, checkIsAdmin } from '../services/authService';
-import { getItems } from '../services/itemService';
-import { getTrucks } from '../services/truckService';
-import { getMovements } from '../services/movementService';
-import { getLowStockItems } from '../services/stockService';
-import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // 👈 Adicionado useSafeAreaInsets
+import { colors, typography } from '../styles/global';
+import { logoutUser } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
-  const [stats, setStats] = useState({
-    itemsCount: 0,
-    trucksCount: 0,
-    movementsCount: 0,
-    lowStockCount: 0,
-    recentMovements: []
-  });
-  const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets(); // 👈 Obtendo os insets (espaciamentos seguros)
+  const { 
+    items, 
+    trucks, 
+    movements, 
+    lowStockItems, 
+    isAdmin, 
+    refreshData,
+    user,
+    loading: globalLoading 
+  } = useData();
+
   const [refreshing, setRefreshing] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  const user = auth.currentUser;
-
-  const loadStats = async () => {
-    try {
-      const admin = await checkIsAdmin();
-      setIsAdmin(admin);
-
-      const [itemsResult, trucksResult, movementsResult, lowStockResult] = await Promise.all([
-        getItems(),
-        getTrucks(),
-        getMovements(),
-        getLowStockItems()
-      ]);
-
-      const items = itemsResult.success ? itemsResult.data : [];
-      const trucks = trucksResult.success ? trucksResult.data : [];
-      const movements = movementsResult.success ? movementsResult.data : [];
-      const lowStockItems = lowStockResult.success ? lowStockResult.data : [];
-
-      // Sort movements by date descending if they have a date
-      const sortedMovements = movements.sort((a, b) => {
-        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-        return dateB - dateA;
-      });
-
-      setStats({
-        itemsCount: items.length,
-        trucksCount: trucks.length,
-        movementsCount: movements.length,
-        lowStockCount: lowStockItems.length,
-        recentMovements: sortedMovements.slice(0, 3)
-      });
-    } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  // Estatísticas calculadas a partir dos dados do contexto
+  const stats = {
+    itemsCount: items.length,
+    trucksCount: trucks.length,
+    movementsCount: movements.length,
+    lowStockCount: lowStockItems.length,
+    recentMovements: movements.slice(0, 3)
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadStats();
-    }, [])
-  );
-
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadStats();
+    await refreshData();
+    setRefreshing(false);
   };
 
   const handleLogout = async () => {
@@ -107,17 +69,14 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Sincronizando dados...</Text>
-      </View>
-    );
-  }
+  const getUserDisplayName = () => {
+      if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+      if (user?.email) return user.email.split('@')[0].toUpperCase();
+      return 'USUÁRIO';
+  };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
       {/* TopAppBar */}
@@ -125,23 +84,26 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.topBarLeft}>
           <TouchableOpacity 
             style={styles.menuButton}
-            onPress={() => Alert.alert('Menu', 'Funcionalidade de navegação rápida em breve.')}
+            onPress={() => Alert.alert('Menu', 'Funcionalidade em desenvolvimento.')}
           >
-            <Text style={{ fontSize: 20, color: colors.primary }}>☰</Text>
+            <Text style={styles.menuIconText}>☰</Text>
           </TouchableOpacity>
           <Text style={styles.brandText}>Almoxarifado Pro</Text>
         </View>
         <View style={styles.topBarRight}>
           <TouchableOpacity onPress={handleLogout}>
             <View style={styles.profileIcon}>
-              <Text style={{ fontSize: 14 }}>👤</Text>
+              <Text style={styles.profileIconText}>👤</Text>
             </View>
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 100 + insets.bottom } // 👈 Ajuste dinâmico do final da lista
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
@@ -155,10 +117,10 @@ const HomeScreen = ({ navigation }) => {
             style={styles.heroCard}
           >
             <View style={styles.heroContent}>
-              <Text style={styles.heroLabel}>BOM DIA, {user?.displayName?.toUpperCase() || 'USUÁRIO'}</Text>
+              <Text style={styles.heroLabel}>Bem Vindo, {getUserDisplayName()}</Text>
               <Text style={styles.heroTitle}>Visão Geral das{"\n"}Operações</Text>
               <Text style={styles.heroSubtitle}>
-                Monitore o estoque e a logística em tempo real. A eficiência está a um clique.
+                Monitore o estoque e a logística em tempo real via Supabase.
               </Text>
             </View>
             <View style={styles.heroDeco} />
@@ -173,7 +135,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('ItemList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#e7f0ff' }]}>
-                <Text style={{ fontSize: 20 }}>📦</Text>
+                <Text style={styles.iconEmoji}>📦</Text>
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Itens em Estoque</Text>
@@ -186,7 +148,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('TruckList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#fff0f0' }]}>
-                <Text style={{ fontSize: 20 }}>🚚</Text>
+                <Text style={styles.iconEmoji}>🚚</Text>
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Carretas Ativas</Text>
@@ -201,7 +163,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('MovementList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#fff7ed' }]}>
-                <Text style={{ fontSize: 20 }}>🔄</Text>
+                <Text style={styles.iconEmoji}>🔄</Text>
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Movimentações</Text>
@@ -214,7 +176,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('StockReport')}
             >
               <View style={[styles.iconBox, { backgroundColor: stats.lowStockCount > 0 ? '#fef2f2' : '#f8f9fa' }]}>
-                <Text style={{ fontSize: 20 }}>⚠️</Text>
+                <Text style={styles.iconEmoji}>⚠️</Text>
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Estoque Baixo</Text>
@@ -246,7 +208,7 @@ const HomeScreen = ({ navigation }) => {
                   styles.movementIcon, 
                   { backgroundColor: item.type === 'entry' ? '#f0fdf4' : '#fef2f2' }
                 ]}>
-                  <Text style={{ fontSize: 16 }}>{item.type === 'entry' ? '📥' : '📤'}</Text>
+                  <Text style={styles.typeIcon}>{item.type === 'entry' ? '📥' : '📤'}</Text>
                 </View>
                 <View style={styles.movementInfo}>
                   <Text style={styles.movementName} numberOfLines={1}>
@@ -262,7 +224,7 @@ const HomeScreen = ({ navigation }) => {
                     {item.type === 'entry' ? '+' : '-'}{item.quantity}
                   </Text>
                   <Text style={styles.movementTime}>
-                    {item.date?.toDate ? item.date.toDate().toLocaleTimeString([], { hour: '2d', minute: '2d' }) : ''}
+                    {item.date ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -284,29 +246,46 @@ const HomeScreen = ({ navigation }) => {
             style={styles.quickAction}
             onPress={() => navigation.navigate('ItemForm')}
           >
-            <View style={styles.quickActionIcon}><Text style={{ fontSize: 24 }}>➕</Text></View>
+            <View style={styles.quickActionIcon}>
+              <Text style={styles.actionEmoji}>➕</Text>
+            </View>
             <Text style={styles.quickActionLabel}>Novo Item</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAction}
             onPress={() => navigation.navigate('Movements')}
           >
-            <View style={styles.quickActionIcon}><Text style={{ fontSize: 24 }}>🔄</Text></View>
+            <View style={styles.quickActionIcon}>
+              <Text style={styles.actionEmoji}>🔄</Text>
+            </View>
             <Text style={styles.quickActionLabel}>Movimentar</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAction}
             onPress={() => navigation.navigate('TruckForm')}
           >
-            <View style={styles.quickActionIcon}><Text style={{ fontSize: 24 }}>🚚</Text></View>
+            <View style={styles.quickActionIcon}>
+              <Text style={styles.actionEmoji}>🚚</Text>
+            </View>
             <Text style={styles.quickActionLabel}>Nova Carreta</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.quickAction}
             onPress={() => navigation.navigate('StockReport')}
           >
-            <View style={styles.quickActionIcon}><Text style={{ fontSize: 24 }}>📊</Text></View>
+            <View style={styles.quickActionIcon}>
+              <Text style={styles.actionEmoji}>📊</Text>
+            </View>
             <Text style={styles.quickActionLabel}>Relatório</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.quickAction}
+            onPress={() => navigation.navigate('EmployeeForm')}
+          >
+            <View style={styles.quickActionIcon}>
+              <Text style={styles.actionEmoji}>👤</Text>
+            </View>
+            <Text style={styles.quickActionLabel}>Novo Funcionário</Text>
           </TouchableOpacity>
         </View>
 
@@ -321,19 +300,22 @@ const HomeScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      {/* Floating Plus Button (Stitch style) */}
+      {/* Floating Action Button */}
       <TouchableOpacity 
-        style={styles.fab} 
+        style={[
+            styles.fab,
+            { bottom: 30 + insets.bottom } // 👈 Posicionamento inteligente do FAB
+        ]} 
         onPress={() => navigation.navigate('Movements')}
       >
         <LinearGradient
           colors={[colors.primary, colors.primaryVariant]}
           style={styles.fabGradient}
         >
-          <Text style={{ color: '#fff', fontSize: 32, fontWeight: 'bold' }}>⇅</Text>
+          <Text style={styles.fabIcon}>⇅</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -347,8 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    height: 80,
-    paddingTop: 25,
+    height: 60,
     backgroundColor: 'rgba(255,255,255,0.92)',
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
@@ -363,6 +344,10 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
   },
+  menuIconText: {
+    fontSize: 20,
+    color: colors.primary,
+  },
   brandText: {
     ...typography.headline,
     fontSize: 18,
@@ -373,9 +358,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  searchButton: {
-    padding: 8,
-  },
   profileIcon: {
     width: 32,
     height: 32,
@@ -385,6 +367,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.outlineVariant,
+  },
+  profileIconText: {
+    fontSize: 14,
+  },
+  scrollContent: {
+    // paddingBottom agora é dinâmico no componente
   },
   heroWrapper: {
     padding: 20,
@@ -462,6 +450,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  iconEmoji: {
+    fontSize: 20,
+  },
   bentoContent: {
     gap: 2,
   },
@@ -506,7 +497,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.surfaceVariant,
   },
   movementIcon: {
     width: 44,
@@ -514,6 +505,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  typeIcon: {
+    fontSize: 16,
   },
   movementInfo: {
     flex: 1,
@@ -566,7 +560,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.surfaceVariant,
   },
   quickActionIcon: {
     width: 48,
@@ -580,6 +574,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
+  },
+  actionEmoji: {
+    fontSize: 24,
   },
   quickActionLabel: {
     ...typography.label,
@@ -607,7 +604,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 30,
     width: 64,
     height: 64,
     borderRadius: 22,
@@ -622,7 +618,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fabIcon: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
   }
 });
 
-export default HomeScreen;
+export default HomeScreen;

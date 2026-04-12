@@ -28,6 +28,7 @@ const LoginScreen = ({ navigation }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
+        console.log("Usuário logadooooooooo: " + user.email);
         navigation.replace('Home');
       }
       setCheckingAuth(false);
@@ -48,14 +49,16 @@ const LoginScreen = ({ navigation }) => {
       const result = await loginUser(email, password);
       
       if (result.success) {
-        navigation.replace('Home');
+        // A navegação será tratada pelo onAuthStateChanged para evitar duplicidade
+        console.log('Login bem-sucedido via service');
+        console.log("resultado do login: " + result)
       } else {
-        Alert.alert('Erro', result.error);
+        setLoading(false);
+        Alert.alert('Falha no Acesso', result.error);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Ocorreu um erro inesperado ao fazer login');
-    } finally {
       setLoading(false);
+      Alert.alert('Erro', 'Ocorreu um erro inesperado ao fazer login');
     }
   };
 
@@ -91,25 +94,13 @@ const LoginScreen = ({ navigation }) => {
             </View>
             
             <View style={styles.heroTextContainer}>
-              <Text style={styles.heroTitle}>Acelere sua{"\n"}Produtividade.</Text>
+              <Text style={styles.heroTitle}>Almoxarifado{"\n"}Inteligente.</Text>
               <Text style={styles.heroSubtitle}>
-                Gestão inteligente de estoque com precisão logística e controle em tempo real.
+                Controle total do seu estoque e logística em tempo real, com a precisão que sua operação exige.
               </Text>
-            </View>
-
-            <View style={styles.trustBadge}>
-              <View style={styles.avatarRow}>
-                <View style={[styles.avatar, { backgroundColor: '#e1e3e4' }]} />
-                <View style={[styles.avatar, { backgroundColor: '#c00015', marginLeft: -12 }]} />
-                <View style={[styles.avatar, { backgroundColor: '#5f5e5e', marginLeft: -12 }]} />
-              </View>
-              <Text style={styles.trustText}>+500 EMPRESAS CONFIAM</Text>
             </View>
           </View>
           
-          {/* Decorative Elements */}
-          <View style={styles.decoCircle1} />
-          <View style={styles.decoCircle2} />
         </LinearGradient>
 
         {/* Login Form Section */}
@@ -391,4 +382,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default LoginScreen;
+export default LoginScreen;

@@ -1,0 +1,6 @@
+# Ignore large or problematic folders for EAS Build
+stitch/
+"splash screen + icon app/"
+"splash screen + icon app"
+# Also ignore backup folders or design assets
+assets/design/

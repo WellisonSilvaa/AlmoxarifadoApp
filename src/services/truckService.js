@@ -1,50 +1,38 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs,
-  getDoc,
-  doc, 
-  updateDoc,
-  query,
-  orderBy,
-  where
-} from 'firebase/firestore';
-import { db } from './firebase';
-import { auth } from './firebase';
+
+// src/services/truckService.js
+import { supabase } from './supabase';
+
+const TABLE_NAME = 'trucks';
 
 // Criar nova carreta
 export const createTruck = async (truckData) => {
   try {
-    const user = auth.currentUser;
-    
-    if (!user) {
-      return { success: false, error: "Usuário não autenticado" };
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Usuário não autenticado" };
 
-    // Validar placa (formato básico)
-    if (!truckData.plate || truckData.plate.trim().length < 6) {
-      return { success: false, error: "Placa é obrigatória e deve ter pelo menos 6 caracteres" };
-    }
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert([{
+        plate: truckData.plate.trim().toUpperCase(),
+        brand: truckData.brand?.trim() || '',
+        model: truckData.model?.trim() || '',
+        year: truckData.year || null,
+        capacity: truckData.capacity || '',
+        photo_url: truckData.photoUrl || '',
+        is_active: true
+      }])
+      .select()
+      .single();
 
-    const docRef = await addDoc(collection(db, 'trucks'), {
-      plate: truckData.plate.trim().toUpperCase(),
-      model: truckData.model?.trim() || '',
-      brand: truckData.brand?.trim() || '',
-      year: truckData.year || null,
-      capacity: truckData.capacity?.trim() || '',
-      photoUrl: truckData.photoUrl || '',
-      isActive: true,
-      createdAt: new Date(),
-      createdBy: user.uid
-    });
+    if (error) throw error;
 
     return { 
       success: true, 
-      id: docRef.id, 
+      id: data.id, 
       message: "Carreta cadastrada com sucesso!" 
     };
   } catch (error) {
-    console.error("Erro ao criar carreta:", error);
+    console.error("Erro ao criar carreta no Supabase:", error);
     return { success: false, error: "Erro ao cadastrar carreta." };
   }
 };
@@ -52,29 +40,25 @@ export const createTruck = async (truckData) => {
 // Buscar todas as carretas
 export const getTrucks = async () => {
   try {
-    const q = query(
-      collection(db, 'trucks'), 
-      where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
-    );
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
     
-    const querySnapshot = await getDocs(q);
-    const trucks = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      trucks.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt 
-          ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
-          : new Date()
-      });
-    });
-    
-    return { success: true, data: trucks };
+    return { 
+      success: true, 
+      data: data.map(t => ({
+        ...t,
+        isActive: t.is_active,
+        photoUrl: t.photo_url,
+        createdAt: new Date(t.created_at)
+      }))
+    };
   } catch (error) {
-    console.error("Erro ao buscar carretas:", error);
+    console.error("Erro ao buscar carretas no Supabase:", error);
     return { success: false, error: "Erro ao carregar carretas." };
   }
 };
@@ -82,26 +66,63 @@ export const getTrucks = async () => {
 // Buscar carreta por ID
 export const getTruckById = async (id) => {
   try {
-    const truckRef = doc(db, 'trucks', id);
-    const docSnap = await getDoc(truckRef);
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      return { 
-        success: true, 
-        data: { 
-          id: docSnap.id, 
-          ...data,
-          createdAt: data.createdAt 
-            ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt))
-            : new Date()
-        } 
-      };
-    } else {
-      return { success: false, error: "Carreta não encontrada" };
-    }
+    if (error) throw error;
+
+    return { 
+      success: true, 
+      data: { 
+        ...data,
+        isActive: data.is_active,
+        photoUrl: data.photo_url,
+        createdAt: new Date(data.created_at)
+      } 
+    };
   } catch (error) {
-    console.error("Erro ao buscar carreta:", error);
-    return { success: false, error: "Erro ao carregar carreta." };
+    return { success: false, error: "Carreta não encontrada" };
+  }
+};
+
+// Atualizar carreta
+export const updateTruck = async (id, truckData) => {
+  try {
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update({
+        plate: truckData.plate.trim().toUpperCase(),
+        brand: truckData.brand?.trim() || '',
+        model: truckData.model?.trim() || '',
+        year: truckData.year || null,
+        capacity: truckData.capacity || '',
+        photo_url: truckData.photoUrl || '',
+        is_active: truckData.isActive !== undefined ? truckData.isActive : true
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true, message: "Carreta atualizada com sucesso!" };
+  } catch (error) {
+    console.error("Erro ao atualizar carreta no Supabase:", error);
+    return { success: false, error: "Erro ao atualizar carreta." };
+  }
+};
+
+// Deletar carreta (desativar)
+export const deleteTruck = async (id) => {
+  try {
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update({ is_active: false })
+      .eq('id', id);
+
+    if (error) throw error;
+    return { success: true, message: "Carreta desativada com sucesso!" };
+  } catch (error) {
+    return { success: false, error: "Erro ao desativar carreta." };
   }
 };

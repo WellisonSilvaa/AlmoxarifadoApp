@@ -1,3 +1,4 @@
+
 // src/screens/EmployeeFormScreen.js
 import React, { useState } from 'react';
 import { 
@@ -17,8 +18,10 @@ import { colors, typography } from '../styles/global';
 import { createEmployee } from '../services/employeeService';
 import { registerEmployee } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext'; // 👈 Importando useData
 
 const EmployeeFormScreen = ({ navigation }) => {
+  const { refreshData } = useData(); // 👈 Consumindo refreshData
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,6 +71,9 @@ const EmployeeFormScreen = ({ navigation }) => {
         setLoading(false);
         return;
       }
+
+      await refreshData(); // 👈 Atualizando contexto (mesmo que não tenhamos lista de funcionários visível agora, é boa prática)
+
       Alert.alert('Sucesso', 'Funcionário cadastrado!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch (error) {
       Alert.alert('Erro', 'Erro ao cadastrar funcionário.');
@@ -176,4 +182,4 @@ const styles = StyleSheet.create({
   cancelText: { ...typography.label, color: colors.secondary, fontSize: 16 },
 });
 
-export default EmployeeFormScreen;
+export default EmployeeFormScreen;

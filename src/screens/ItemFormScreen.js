@@ -18,8 +18,10 @@ import { createItem } from '../services/itemService';
 import { uploadImage } from '../utils/storageUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const ItemFormScreen = ({ navigation }) => {
+    const { refreshData } = useData();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [minStock, setMinStock] = useState('5');
@@ -111,6 +113,9 @@ const ItemFormScreen = ({ navigation }) => {
             });
 
             if (result.success) {
+                // 👇 Atualizar dados globais após cadastrar novo item
+                await refreshData();
+                
                 Alert.alert('Sucesso', 'Item cadastrado com sucesso!', [
                     { text: 'OK', onPress: () => navigation.goBack() }
                 ]);

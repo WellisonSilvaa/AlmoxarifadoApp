@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+
+// src/screens/TruckFormScreen.js
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,20 +16,54 @@ import {
   KeyboardAvoidingView
 } from 'react-native';
 import { colors, typography } from '../styles/global';
-import { createTruck } from '../services/truckService';
+import { createTruck, updateTruck, getTruckById } from '../services/truckService';
 import { uploadImage } from '../utils/storageUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
-const TruckFormScreen = ({ navigation }) => {
+const TruckFormScreen = ({ route, navigation }) => {
+  const truckId = route?.params?.truckId;
+  const isEditing = !!truckId;
+  const { refreshData } = useData();
+
   const [plate, setPlate] = useState('');
   const [model, setModel] = useState('');
   const [brand, setBrand] = useState('');
   const [year, setYear] = useState('');
   const [capacity, setCapacity] = useState('');
   const [image, setImage] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEditing);
   const [uploading, setUploading] = useState(false);
+  const [isNewImage, setIsNewImage] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      loadTruckDetails();
+    }
+  }, [truckId]);
+
+  const loadTruckDetails = async () => {
+    try {
+      const result = await getTruckById(truckId);
+      if (result.success) {
+        const truck = result.data;
+        setPlate(formatPlate(truck.plate));
+        setModel(truck.model || '');
+        setBrand(truck.brand || '');
+        setYear(truck.year ? truck.year.toString() : '');
+        setCapacity(truck.capacity || '');
+        setImage(truck.photoUrl || null);
+      } else {
+        Alert.alert('Erro', 'Não foi possível carregar os dados da carreta.');
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const pickImage = async () => {
     try {
@@ -44,6 +80,7 @@ const TruckFormScreen = ({ navigation }) => {
       });
       if (!result.canceled && result.assets[0]) {
         setImage(result.assets[0].uri);
+        setIsNewImage(true);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
@@ -65,6 +102,7 @@ const TruckFormScreen = ({ navigation }) => {
       });
       if (!result.canceled && result.assets[0]) {
         setImage(result.assets[0].uri);
+        setIsNewImage(true);
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível tirar a foto.');
@@ -86,7 +124,10 @@ const TruckFormScreen = ({ navigation }) => {
   const formatPlate = (text) => {
     let formatted = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (formatted.length > 7) formatted = formatted.substring(0, 7);
-    if (formatted.length > 3) formatted = formatted.substring(0, 3) + '-' + formatted.substring(3);
+    if (formatted.length > 3) {
+        // Se for placa antiga (3 letras - 4 numeros) ou Mercosul
+        formatted = formatted.substring(0, 3) + '-' + formatted.substring(3);
+    }
     return formatted;
   };
 
@@ -99,36 +140,53 @@ const TruckFormScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      let photoUrl = '';
-      if (image) {
+      let photoUrl = image;
+      
+      // Só faz upload se for uma nova imagem selecionada (URI local)
+      if (isNewImage && image) {
         setUploading(true);
-        const uploadResult = await uploadImage(image, 'trucks/');
+        const uploadResult = await uploadImage(image, 'trucks');
         setUploading(false);
         if (uploadResult.success) photoUrl = uploadResult.url;
       }
 
-      const result = await createTruck({
+      const truckData = {
         plate: plate.replace('-', ''),
         model,
         brand,
         year: year ? parseInt(year) : null,
         capacity,
-        photoUrl
-      });
+        photoUrl: photoUrl || ''
+      };
+
+      let result;
+      if (isEditing) {
+        result = await updateTruck(truckId, truckData);
+      } else {
+        result = await createTruck(truckData);
+      }
 
       if (result.success) {
-        Alert.alert('Sucesso', 'Carreta cadastrada com sucesso!', [
-          { text: 'OK', onPress: () => navigation.goBack() }
-        ]);
+        refreshData(); // ⚡ Sync em background
+        navigation.goBack(); // 🚄 Volta instantaneamente
       } else {
         Alert.alert('Erro', result.error);
+        setLoading(false);
       }
     } catch (error) {
       Alert.alert('Erro', 'Ocorreu um erro inesperado.');
-    } finally {
       setLoading(false);
     }
   };
+
+  if (loading && isEditing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.secondary }}>Carregando dados...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -142,13 +200,12 @@ const TruckFormScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={{ fontSize: 20 }}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nova Carreta</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Editar Carreta' : 'Nova Carreta'}</Text>
           <View style={{ width: 40 }} />
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Image Section */}
         <TouchableOpacity style={styles.imageSelector} onPress={handleImagePress}>
           {image ? (
             <View style={styles.imageWrapper}>
@@ -245,7 +302,7 @@ const TruckFormScreen = ({ navigation }) => {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Cadastrar Veículo</Text>
+                <Text style={styles.buttonText}>{isEditing ? 'Salvar Alterações' : 'Cadastrar Veículo'}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -268,10 +325,8 @@ const TruckFormScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   header: {
     backgroundColor: colors.white,
     borderBottomWidth: 1,
@@ -279,78 +334,21 @@ const styles = StyleSheet.create({
     paddingTop: 25,
     height: 85,
   },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    height: 60,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    ...typography.headline,
-    fontSize: 18,
-    color: colors.primary,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  imageSelector: {
-    height: 200,
-    backgroundColor: colors.surfaceContainerLow,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  imageWrapper: {
-    width: '100%',
-    height: '100%',
-  },
-  selectedImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  editBadge: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  imagePlaceholder: {
-    alignItems: 'center',
-  },
-  placeholderIcon: {
-    fontSize: 44,
-    marginBottom: 10,
-  },
-  placeholderLabel: {
-    ...typography.body,
-    color: colors.secondary,
-    fontSize: 14,
-  },
-  formContainer: {
-    paddingHorizontal: 24,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  label: {
-    ...typography.label,
-    fontSize: 13,
-    color: colors.onSurface,
-    marginBottom: 8,
-    paddingLeft: 4,
-  },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, height: 60 },
+  backButton: { padding: 8 },
+  headerTitle: { ...typography.headline, fontSize: 18, color: colors.primary },
+  scrollContent: { paddingBottom: 40 },
+  imageSelector: { height: 200, backgroundColor: colors.surfaceContainerLow, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  imageWrapper: { width: '100%', height: '100%' },
+  selectedImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  editBadge: { position: 'absolute', bottom: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  imagePlaceholder: { alignItems: 'center' },
+  placeholderIcon: { fontSize: 44, marginBottom: 10 },
+  placeholderLabel: { ...typography.body, color: colors.secondary, fontSize: 14 },
+  formContainer: { paddingHorizontal: 24 },
+  inputGroup: { marginBottom: 20 },
+  row: { flexDirection: 'row', gap: 16 },
+  label: { ...typography.label, fontSize: 13, color: colors.onSurface, marginBottom: 8, paddingLeft: 4 },
   input: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -362,48 +360,13 @@ const styles = StyleSheet.create({
     borderColor: colors.outlineVariant,
     ...typography.body,
   },
-  plateInput: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    letterSpacing: 2,
-    paddingVertical: 16,
-    color: colors.primary,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    marginTop: 10,
-  },
-  gradientButton: {
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    ...typography.label,
-    fontSize: 16,
-    color: '#fff',
-    textTransform: 'none',
-  },
-  uploadText: {
-    textAlign: 'center',
-    color: colors.secondary,
-    fontSize: 12,
-    marginTop: 8,
-  },
-  cancelButton: {
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  cancelText: {
-    ...typography.label,
-    fontSize: 16,
-    color: colors.secondary,
-    textTransform: 'none',
-  },
+  plateInput: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', letterSpacing: 2, paddingVertical: 16, color: colors.primary },
+  footer: { paddingHorizontal: 24, marginTop: 10 },
+  gradientButton: { height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  buttonText: { ...typography.label, fontSize: 16, color: '#fff', textTransform: 'none' },
+  uploadText: { textAlign: 'center', color: colors.secondary, fontSize: 12, marginTop: 8 },
+  cancelButton: { height: 56, justifyContent: 'center', alignItems: 'center', marginTop: 8 },
+  cancelText: { ...typography.label, fontSize: 16, color: colors.secondary, textTransform: 'none' },
 });
 
-export default TruckFormScreen;
+export default TruckFormScreen;

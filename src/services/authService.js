@@ -1,266 +1,148 @@
-// src/services/authService.js
-// Importações para Firebase v12
-import { 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { auth, db } from './firebase';
 
-// Registrar novo usuário (admin)
+// src/services/authService.js
+import { createClient } from '@supabase/supabase-js';
+import { supabase as mainSupabase } from './supabase';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+// 1. Cliente principal (gerencia a sessão do usuário logado no app)
+export const supabase = mainSupabase;
+
+// 2. Cliente secundário exclusivo para cadastro (NÃO altera a sessão atual)
+const supabaseAuthOnly = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
+
+// Registrar novo usuário (admin ou inicial) - Usa o cliente principal para logar o novo admin após criar
 export const registerUser = async (email, password, name, role = 'admin') => {
   try {
-    // Validação adicional
-    if (!name || name.trim().length < 2) {
-      return { success: false, error: "Nome deve ter pelo menos 2 caracteres" };
-    }
-
-    if (!email || !password) {
-      return { success: false, error: "Email e senha são obrigatórios" };
-    }
-
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Atualizar perfil do usuário com o nome
-    await updateProfile(userCredential.user, {
-      displayName: name.trim()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        }
+      }
     });
 
-    // Criar documento de usuário no Firestore com role
-    await setDoc(doc(db, 'users', userCredential.user.uid), {
-      uid: userCredential.user.uid,
-      email: email,
-      name: name.trim(),
-      role: role, // 'admin' ou 'employee'
-      createdAt: new Date(),
-      isActive: true
-    });
+    if (error) throw error;
+
+    // Criar perfil na tabela profiles
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        { 
+          id: data.user.id, 
+          name: name, 
+          role: role,
+          is_active: true
+        }
+      ]);
+
+    if (profileError) throw profileError;
     
-    return { success: true, user: userCredential.user };
+    return { success: true, user: data.user };
   } catch (error) {
-    let errorMessage = "Erro ao criar usuário";
-    
-    if (error.code === 'auth/email-already-in-use') {
-      errorMessage = "Este email já está em uso.";
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = "Email inválido.";
-    } else if (error.code === 'auth/weak-password') {
-      errorMessage = "A senha é muito fraca.";
-    }
-    
-    return { success: false, error: errorMessage };
+    console.error('Erro no registerUser:', error);
+    return { success: false, error: error.message };
   }
 };
 
-// Registrar funcionário (cria conta de autenticação)
+// Registrar funcionário (Sem deslogar o Admin)
+// Nota: Para este método funcionar sem confirmação de e-mail,
+// desative "Confirm Email" no Dashboard do Supabase.
 export const registerEmployee = async (email, password, name, employeeId) => {
   try {
-    console.log('registerEmployee: Iniciando criação de conta para:', email);
+    console.log('--- Iniciando cadastro silencioso de funcionário ---');
     
-    if (!name || name.trim().length < 2) {
-      return { success: false, error: "Nome deve ter pelo menos 2 caracteres" };
-    }
-
-    if (!email || !password) {
-      return { success: false, error: "Email e senha são obrigatórios" };
-    }
-
-    let userCredential;
-    
-    try {
-      // Tentar criar a conta de autenticação
-      userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('registerEmployee: Conta criada com sucesso:', userCredential.user.uid);
-    } catch (authError) {
-      console.error('registerEmployee: Erro ao criar conta:', authError.code, authError.message);
-      
-      // Se o email já está em uso, tentar vincular a conta existente
-      if (authError.code === 'auth/email-already-in-use') {
-        console.log('registerEmployee: Email já está em uso, buscando usuário existente...');
-        
-        // Buscar se já existe um documento do usuário com este email
-        const usersQuery = query(
-          collection(db, 'users'),
-          where('email', '==', email)
-        );
-        const usersSnapshot = await getDocs(usersQuery);
-        
-        if (!usersSnapshot.empty) {
-          // Usuário já existe na collection users
-          const existingUserDoc = usersSnapshot.docs[0];
-          const existingUserData = existingUserDoc.data();
-          
-          console.log('registerEmployee: Usuário encontrado na collection users:', existingUserData);
-          
-          // Atualizar o documento com o employeeId se ainda não tiver
-          if (!existingUserData.employeeId) {
-            await updateDoc(doc(db, 'users', existingUserDoc.id), {
-              employeeId: employeeId,
-              role: 'employee',
-              name: name.trim()
-            });
-            console.log('registerEmployee: Documento atualizado com employeeId');
-          }
-          
-          return { 
-            success: true, 
-            user: { uid: existingUserDoc.id },
-            message: "Conta já existia e foi vinculada ao funcionário"
-          };
-        } else {
-          // Conta existe no Auth mas não na collection users
-          // Não podemos acessar o UID sem fazer login, então retornar erro
-          return { 
-            success: false, 
-            error: "Este email já está cadastrado no sistema. Por favor, use outro email ou entre em contato com o administrador." 
-          };
+    // Usamos o cliente supabaseAuthOnly para não sobrescrever o token do Admin atual
+    const { data, error } = await supabaseAuthOnly.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
         }
       }
-      
-      // Outros erros de autenticação
-      let errorMessage = "Erro ao criar conta do funcionário";
-      
-      if (authError.code === 'auth/invalid-email') {
-        errorMessage = "Email inválido.";
-      } else if (authError.code === 'auth/weak-password') {
-        errorMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
-      } else if (authError.code === 'auth/network-request-failed') {
-        errorMessage = "Erro de conexão. Verifique sua internet.";
-      } else {
-        errorMessage = `Erro ao criar conta: ${authError.message}`;
-      }
-      
-      return { success: false, error: errorMessage };
-    }
-    
-    // Se chegou aqui, a conta foi criada com sucesso
-    // Atualizar perfil do usuário com o nome
-    try {
-      await updateProfile(userCredential.user, {
-        displayName: name.trim()
-      });
-      console.log('registerEmployee: Perfil atualizado com sucesso');
-    } catch (profileError) {
-      console.warn('registerEmployee: Erro ao atualizar perfil (continuando):', profileError);
-      // Não bloquear se falhar atualizar o perfil
+    });
+
+    if (error) throw error;
+
+    if (!data.user) {
+        throw new Error("Erro ao criar usuário no Auth");
     }
 
-    // Criar documento de usuário no Firestore com role de employee
-    try {
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        email: email,
-        name: name.trim(),
-        role: 'employee',
-        employeeId: employeeId, // ID do documento na collection employees
-        createdAt: new Date(),
-        isActive: true
-      });
-      console.log('registerEmployee: Documento criado na collection users com sucesso');
-    } catch (firestoreError) {
-      console.error('registerEmployee: Erro ao criar documento no Firestore:', firestoreError);
-      
-      // Se falhar ao criar o documento, tentar atualizar se já existir
-      const userDocRef = doc(db, 'users', userCredential.user.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        await updateDoc(userDocRef, {
-          employeeId: employeeId,
+    // Usamos o cliente PRINCIPAL (supabase) para salvar o perfil na DB, 
+    // pois o Admin tem permissão para escrever na tabela profiles.
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        { 
+          id: data.user.id, 
+          name: name, 
           role: 'employee',
-          name: name.trim(),
-          email: email
-        });
-        console.log('registerEmployee: Documento atualizado (já existia)');
-      } else {
-        // Se não conseguir criar nem atualizar, retornar erro
-        throw new Error('Não foi possível criar o documento do usuário no Firestore');
-      }
+          employee_id: employeeId,
+          is_active: true
+        }
+      ]);
+
+    if (profileError) {
+        console.error('Erro ao criar perfil:', profileError);
+        throw profileError;
     }
-    
-    return { success: true, user: userCredential.user };
+
+    console.log('--- Funcionário cadastrado com sucesso (Auth e Perfil) ---');
+    return { success: true, user: data.user };
   } catch (error) {
-    console.error('registerEmployee: Erro geral:', error);
-    return { 
-      success: false, 
-      error: error.message || "Erro desconhecido ao criar conta do funcionário" 
-    };
+    console.error('Erro no registerEmployee:', error);
+    return { success: false, error: error.message };
   }
 };
 
 // Login de usuário
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Verificar se o usuário tem documento na collection users
-    // Se não tiver, pode ser um usuário antigo - tentar criar documento básico
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    
-    if (!userDoc.exists()) {
-      console.log('Usuário não tem documento na collection users, criando documento básico...');
-      
-      // Tentar buscar se é funcionário pela collection employees
-      const employeesQuery = query(
-        collection(db, 'employees'),
-        where('email', '==', email),
-        where('isActive', '==', true)
-      );
-      const employeesSnapshot = await getDocs(employeesQuery);
-      
-      let role = 'employee';
-      let employeeId = null;
-      
-      if (!employeesSnapshot.empty) {
-        // É um funcionário
-        const employeeDoc = employeesSnapshot.docs[0];
-        employeeId = employeeDoc.id;
-        role = 'employee';
-      } else {
-        // Pode ser um admin antigo - verificar se tem algum admin no sistema
-        // Por padrão, assumir que é admin se não encontrar como funcionário
-        role = 'admin';
-      }
-      
-      // Criar documento do usuário
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: user.email || email,
-        name: user.displayName || email.split('@')[0],
-        role: role,
-        employeeId: employeeId,
-        createdAt: new Date(),
-        isActive: true
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    // Verificar se perfil existe
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.warn('Perfil não encontrado, criando um básico...');
+      await supabase.from('profiles').insert([{ 
+        id: data.user.id, 
+        name: data.user.user_metadata?.full_name || email.split('@')[0], 
+        role: 'employee' 
+      }]);
     }
-    
-    return { success: true, user: user };
+
+    return { success: true, user: data.user };
   } catch (error) {
-    let errorMessage = "Erro ao fazer login";
-    
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = "Usuário não encontrado.";
-    } else if (error.code === 'auth/wrong-password') {
-      errorMessage = "Senha incorreta.";
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = "Email inválido.";
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = "Muitas tentativas. Tente novamente mais tarde.";
-    } else if (error.code === 'auth/invalid-credential') {
-      errorMessage = "Email ou senha incorretos.";
-    }
-    
-    return { success: false, error: errorMessage };
+    console.error('Erro no login:', error);
+    return { success: false, error: "Credenciais inválidas ou erro de conexão" };
   }
 };
 
 // Logout
 export const logoutUser = async () => {
   try {
-    await signOut(auth);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -269,134 +151,81 @@ export const logoutUser = async () => {
 
 // Observador de estado de autenticação
 export const onAuthStateChanged = (callback) => {
-  return auth.onAuthStateChanged(callback);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user || null);
+  });
+  return () => subscription.unsubscribe();
 };
 
 // Verificar se usuário é admin
 export const isAdmin = async (userId) => {
   try {
-    if (!userId) {
-      return false;
-    }
-
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userId) return false;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
     
-    if (!userDoc.exists()) {
-      return false;
-    }
-
-    const userData = userDoc.data();
-    return userData.role === 'admin';
+    if (error) return false;
+    return data.role === 'admin';
   } catch (error) {
-    console.error("Erro ao verificar se é admin:", error);
     return false;
   }
 };
 
-// Obter dados do usuário atual (incluindo role)
+// Obter dados do usuário atual
 export const getCurrentUserData = async () => {
   try {
-    const user = auth.currentUser;
-    
-    if (!user) {
-      return { success: false, error: "Usuário não autenticado" };
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Não autenticado" };
 
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    
-    if (!userDoc.exists()) {
-      return { success: false, error: "Dados do usuário não encontrados" };
-    }
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-    return { 
-      success: true, 
-      data: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        ...userDoc.data()
-      }
-    };
+    if (error) throw error;
+
+    return { success: true, data: { ...user, ...profile } };
   } catch (error) {
-    console.error("Erro ao obter dados do usuário:", error);
-    return { success: false, error: "Erro ao carregar dados do usuário" };
+    return { success: false, error: error.message };
   }
 };
 
-// Verificar se usuário atual é admin
 export const checkIsAdmin = async () => {
-  try {
-    const user = auth.currentUser;
-    
-    if (!user) {
-      return false;
-    }
-
-    return await isAdmin(user.uid);
-  } catch (error) {
-    console.error("Erro ao verificar admin:", error);
-    return false;
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  return await isAdmin(user.id);
 };
 
-// Verificar se usuário pode cadastrar funcionários (admin ou líder)
 export const canCreateEmployee = async () => {
   try {
-    const user = auth.currentUser;
-    
-    if (!user) {
-      console.log('canCreateEmployee: Usuário não autenticado');
-      return false;
+    const is_admin = await checkIsAdmin();
+    if (is_admin) return true;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, employee_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.employee_id) {
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('position')
+        .eq('id', profile.employee_id)
+        .single();
+      
+      const pos = (employee?.position || '').toLowerCase();
+      return pos.includes('lider') || pos.includes('líder');
     }
 
-    // Verificar se é admin
-    const admin = await isAdmin(user.uid);
-    if (admin) {
-      console.log('canCreateEmployee: Usuário é admin - pode cadastrar funcionários');
-      return true;
-    }
-
-    // Se não for admin, verificar se é funcionário com posição "lider"
-    const userData = await getCurrentUserData();
-    
-    if (!userData.success) {
-      console.log('canCreateEmployee: Erro ao obter dados do usuário:', userData.error);
-      return false;
-    }
-
-    if (userData.data.role !== 'employee') {
-      console.log('canCreateEmployee: Usuário não é employee, role:', userData.data.role);
-      return false;
-    }
-
-    // Buscar dados do funcionário na collection employees
-    if (!userData.data.employeeId) {
-      console.log('canCreateEmployee: Employee não tem employeeId');
-      return false;
-    }
-
-    const employeeDoc = await getDoc(doc(db, 'employees', userData.data.employeeId));
-    
-    if (!employeeDoc.exists()) {
-      console.log('canCreateEmployee: Documento do employee não encontrado');
-      return false;
-    }
-
-    const employeeData = employeeDoc.data();
-    const position = (employeeData.position || '').toLowerCase().trim();
-    
-    console.log('canCreateEmployee: Posição do funcionário:', position);
-    
-    // Verificar se a posição é "lider" ou "líder"
-    const isLeader = position === 'lider' || position === 'líder';
-    
-    if (isLeader) {
-      console.log('canCreateEmployee: Funcionário é líder - pode cadastrar funcionários');
-    } else {
-      console.log('canCreateEmployee: Funcionário não é líder - não pode cadastrar funcionários');
-    }
-    
-    return isLeader;
+    return false;
   } catch (error) {
     console.error("Erro ao verificar permissão para cadastrar funcionário:", error);
     return false;

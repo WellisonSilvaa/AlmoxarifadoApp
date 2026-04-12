@@ -1,3 +1,5 @@
+
+// src/screens/ItemDetailScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -17,11 +19,13 @@ import { getItemById, deleteItem } from '../services/itemService';
 import { getImageUrl } from '../utils/storageUtils';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
 const ItemDetailScreen = ({ route, navigation }) => {
   const { itemId } = route.params;
+  const { refreshData, removeItemFromState } = useData(); // 💡 Importando utilitário
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -61,9 +65,11 @@ const ItemDetailScreen = ({ route, navigation }) => {
             try {
               const result = await deleteItem(item.id);
               if (result.success) {
-                Alert.alert("Sucesso", result.message, [
-                  { text: "OK", onPress: () => navigation.goBack() }
-                ]);
+                // 🚀 ATUALIZAÇÃO OTIMISTA: Remove o item do estado do App instantaneamente
+                removeItemFromState(item.id);
+                
+                refreshData(); // 🔥 Sincroniza o resto em background
+                navigation.goBack(); // 🚄 Volta imediatamente para a lista limpa
               } else {
                 Alert.alert("Erro", result.error);
               }
@@ -83,6 +89,8 @@ const ItemDetailScreen = ({ route, navigation }) => {
       </View>
     );
   }
+
+  if (!item) return null;
 
   return (
     <View style={styles.container}>
@@ -220,6 +228,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   content: {
     flex: 1,
@@ -345,4 +354,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ItemDetailScreen;
+export default ItemDetailScreen;

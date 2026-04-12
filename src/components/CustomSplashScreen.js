@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 
 const { width } = Dimensions.get('window');
 
-const CustomSplashScreen = ({ progress = 0 }) => {
+const CustomSplashScreen = ({ progress = 0, statusMessage = "Inicializando Sistemas..." }) => {
   const animatedProgress = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -78,7 +78,7 @@ const CustomSplashScreen = ({ progress = 0 }) => {
               />
             </Animated.View>
           </View>
-          <Text style={styles.loadingText}>Inicializando Sistemas...</Text>
+          <Text style={styles.loadingText}>{statusMessage}</Text>
         </View>
       </View>
 

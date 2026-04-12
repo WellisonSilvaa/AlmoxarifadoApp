@@ -20,6 +20,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
+        "NPM_FLAGS": "--legacy-peer-deps",
+        "NODE_OPTIONS": "--max-old-space-size=4096",
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyBkzLd38OWJIUBCYn7JUoVJJQ2aGQ5BOA0",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "almoxarifado-app-9d831.firebaseapp.com",
         "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "almoxarifado-app-9d831",

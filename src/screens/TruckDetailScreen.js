@@ -1,3 +1,5 @@
+
+// src/screens/TruckDetailScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -12,16 +14,20 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
-import { getTruckById } from '../services/truckService';
+import { getTruckById, deleteTruck } from '../services/truckService';
 import { getImageUrl } from '../utils/storageUtils';
 import LicensePlate from '../components/LicensePlate';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
 const TruckDetailScreen = ({ route, navigation }) => {
   const { truckId } = route.params;
+  const { refreshData, removeTruckFromState } = useData(); // 💡 Importando utilitário
   const [truck, setTruck] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,13 +48,41 @@ const TruckDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  useEffect(() => {
-    loadTruck();
-  }, [truckId]);
+  useFocusEffect(
+    useCallback(() => {
+      loadTruck();
+    }, [truckId])
+  );
+
+  const handleDelete = async () => {
+    Alert.alert(
+      "Excluir Carreta",
+      "Tem certeza que deseja desativar esta carreta do sistema?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Confirmar", 
+          style: "destructive",
+          onPress: async () => {
+            const result = await deleteTruck(truckId);
+            if (result.success) {
+              // 🚀 ATUALIZAÇÃO OTIMISTA: Remove da lista local antes de qualquer coisa
+              removeTruckFromState(truckId); 
+              
+              refreshData(); // 🔥 Atualiza o resto em background
+              navigation.goBack(); // 🚄 Volta instantaneamente (a lista já estará sem o item)
+            } else {
+              Alert.alert("Erro", result.error);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -58,10 +92,9 @@ const TruckDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-        {/* Hero Header with Image */}
         <View style={styles.heroContainer}>
           {truck.photoUrl ? (
             <Image
@@ -71,27 +104,34 @@ const TruckDetailScreen = ({ route, navigation }) => {
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderImage]}>
-              <Text style={{ fontSize: 60 }}>🚚</Text>
+              <Text style={styles.placeholderEmoji}>🚚</Text>
             </View>
           )}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.heroGradient}
           />
-          <TouchableOpacity 
-            style={styles.backButton} 
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={{ color: '#fff', fontSize: 20 }}>←</Text>
-          </TouchableOpacity>
+          <SafeAreaView edges={['top']} style={styles.safeHeader}>
+            <TouchableOpacity 
+                style={styles.backButton} 
+                onPress={() => navigation.goBack()}
+            >
+                <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
         </View>
 
-        {/* Content Section */}
         <View style={styles.content}>
           <View style={styles.headerInfo}>
-            <LicensePlate plate={truck.plate} size="large" />
-            <View style={[styles.statusBadge, { backgroundColor: truck.isActive ? '#f0fdf4' : '#fff1f2' }]}>
-              <Text style={[styles.statusText, { color: truck.isActive ? '#15803d' : colors.error }]}>
+            <LicensePlate plate={truck.plate} size="medium" />
+            <View style={[
+              styles.statusBadge, 
+              { backgroundColor: truck.isActive ? '#f0fdf4' : '#fff1f2' }
+            ]}>
+              <Text style={[
+                styles.statusText, 
+                { color: truck.isActive ? '#15803d' : colors.error }
+              ]}>
                 {truck.isActive ? 'Em Operação' : 'Inativa'}
               </Text>
             </View>
@@ -99,7 +139,6 @@ const TruckDetailScreen = ({ route, navigation }) => {
 
           <Text style={styles.truckTitle}>{truck.brand} {truck.model}</Text>
 
-          {/* Bento Grid Specs */}
           <View style={styles.bentoGrid}>
             <View style={styles.bentoCard}>
               <Text style={styles.bentoLabel}>Capacidade</Text>
@@ -113,7 +152,6 @@ const TruckDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Detailed Info */}
           <View style={styles.detailsSection}>
              <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Marca</Text>
@@ -131,25 +169,24 @@ const TruckDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actions}>
             <TouchableOpacity 
               style={styles.primaryButton}
-              onPress={() => Alert.alert('Aviso', 'Funcionalidade de edição em breve.')}
+              onPress={() => navigation.navigate('TruckForm', { truckId: truck.id })}
             >
               <LinearGradient
                 colors={[colors.primary, colors.primaryVariant]}
                 style={styles.gradientButton}
               >
-                <Text style={styles.buttonText}>Editar Registro</Text>
+                <Text style={styles.buttonText}>Editar carreta</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.secondaryButton}
-              onPress={() => navigation.goBack()}
+              style={styles.deleteButton}
+              onPress={handleDelete}
             >
-              <Text style={styles.secondaryText}>Voltar à Frota</Text>
+              <Text style={styles.deleteText}>Desativar Carreta</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -161,6 +198,12 @@ const TruckDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
   },
   heroContainer: {
@@ -177,6 +220,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  placeholderEmoji: {
+    fontSize: 60,
+  },
   heroGradient: {
     position: 'absolute',
     bottom: 0,
@@ -184,16 +230,25 @@ const styles = StyleSheet.create({
     right: 0,
     height: 120,
   },
-  backButton: {
+  safeHeader: {
     position: 'absolute',
-    top: 25,
-    left: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  backButton: {
+    marginTop: Platform.OS === 'android' ? 10 : 0,
+    marginLeft: 20,
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 20,
   },
   content: {
     flex: 1,
@@ -283,6 +338,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 40,
   },
+  primaryButton: {
+    width: '100%',
+  },
   gradientButton: {
     height: 56,
     borderRadius: 28,
@@ -293,19 +351,19 @@ const styles = StyleSheet.create({
     ...typography.label,
     fontSize: 16,
     color: '#fff',
-    textTransform: 'none',
   },
-  secondaryButton: {
+  deleteButton: {
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.error,
   },
-  secondaryText: {
+  deleteText: {
     ...typography.label,
     fontSize: 16,
-    color: colors.secondary,
-    textTransform: 'none',
+    color: colors.error,
   }
 });
 

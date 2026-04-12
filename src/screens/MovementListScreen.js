@@ -1,3 +1,5 @@
+
+// src/screens/MovementListScreen.js
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -13,43 +15,27 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { globalStyles, colors, typography } from '../styles/global';
-import { getMovements } from '../services/movementService';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // 👈 Adicionado useSafeAreaInsets
+import { colors, typography } from '../styles/global';
 import LicensePlate from '../components/LicensePlate';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
 const MovementListScreen = ({ navigation }) => {
-  const [movements, setMovements] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets(); // 👈 Obtendo insets
+  const { movements: contextMovements, refreshData } = useData();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all'); // 'all', 'entry', 'exit'
 
-  const loadMovements = async () => {
-    try {
-      const result = await getMovements();
-      if (result.success) {
-        setMovements(result.data);
-      } else {
-        Alert.alert('Erro', result.error);
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as movimentações');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadMovements();
-  }, []);
-
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadMovements();
+    await refreshData();
+    setRefreshing(false);
   };
+
+  const movements = contextMovements;
 
   const filteredMovements = useMemo(() => {
     return filter === 'all' 
@@ -79,7 +65,7 @@ const MovementListScreen = ({ navigation }) => {
           styles.typeIcon, 
           { backgroundColor: item.type === 'entry' ? '#f0fdf4' : '#fff1f2' }
         ]}>
-          <Text style={{ fontSize: 18 }}>{item.type === 'entry' ? '📥' : '📤'}</Text>
+          <Text style={styles.emojiText}>{item.type === 'entry' ? '📥' : '📤'}</Text>
         </View>
         
         <View style={styles.cardInfo}>
@@ -109,28 +95,19 @@ const MovementListScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 15, color: colors.secondary, fontFamily: 'Manrope_600SemiBold' }}>Sincronizando histórico...</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
       {/* Custom Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={{ fontSize: 20 }}>←</Text>
+            <Text style={styles.backIconText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Histórico de Fluxo</Text>
           <View style={styles.profileIcon}>
-            <Text style={{ fontSize: 14 }}>👤</Text>
+            <Text style={styles.profileEmoji}>👤</Text>
           </View>
         </View>
       </View>
@@ -139,7 +116,10 @@ const MovementListScreen = ({ navigation }) => {
         data={filteredMovements}
         renderItem={renderMovement}
         keyExtractor={item => item.id}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={[
+            styles.listContent, 
+            { paddingBottom: 100 + insets.bottom } // 👈 Ajuste dinâmico
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
@@ -184,7 +164,7 @@ const MovementListScreen = ({ navigation }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>📋</Text>
+            <Text style={styles.emptyEmoji}>📋</Text>
             <Text style={styles.emptyTitle}>Sem registros</Text>
             <Text style={styles.emptySubtitle}>
               Nenhuma movimentação encontrada para o filtro selecionado.
@@ -195,17 +175,20 @@ const MovementListScreen = ({ navigation }) => {
 
       {/* FAB */}
       <TouchableOpacity 
-        style={styles.fab} 
+        style={[
+            styles.fab,
+            { bottom: 30 + insets.bottom } // 👈 Posicionamento inteligente
+        ]} 
         onPress={() => navigation.navigate('Movements')}
       >
         <LinearGradient
           colors={[colors.primary, colors.primaryVariant]}
           style={styles.fabGradient}
         >
-          <Text style={{ color: '#fff', fontSize: 28 }}>+</Text>
+          <Text style={styles.fabIcon}>+</Text>
         </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -218,7 +201,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
   },
   headerTop: {
     flexDirection: 'row',
@@ -229,6 +211,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  backIconText: {
+    fontSize: 20,
   },
   headerTitle: {
     ...typography.headline,
@@ -244,6 +229,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.surfaceVariant,
+  },
+  profileEmoji: {
+    fontSize: 14,
+  },
+  listContent: {
+    padding: 20,
+    // paddingBottom agora é dinâmico
   },
   statsRow: {
     flexDirection: 'row',
@@ -320,6 +312,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emojiText: {
+    fontSize: 18,
+  },
   cardInfo: {
     flex: 1,
   },
@@ -365,6 +360,10 @@ const styles = StyleSheet.create({
     padding: 60,
     alignItems: 'center',
   },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
   emptyTitle: {
     ...typography.title,
     fontSize: 18,
@@ -379,7 +378,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 30,
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -394,7 +392,11 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fabIcon: {
+    color: '#fff',
+    fontSize: 28,
   }
 });
 
-export default MovementListScreen;
+export default MovementListScreen;
