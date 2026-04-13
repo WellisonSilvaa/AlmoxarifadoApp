@@ -19,6 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography } from '../styles/global';
 import { getImageUrl } from '../utils/storageUtils';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
 import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -65,7 +66,7 @@ const ItemListScreen = ({ navigation }) => {
                         />
                     ) : (
                         <View style={styles.placeholderImage}>
-                            <Text style={styles.placeholderEmoji}>📦</Text>
+                            <MaterialCommunityIcons name="package-variant-closed" size={32} color={colors.secondary} opacity={0.5} />
                         </View>
                     )}
                 </View>
@@ -117,11 +118,11 @@ const ItemListScreen = ({ navigation }) => {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Text style={styles.backIconText}>←</Text>
+                        <Ionicons name="arrow-back" size={24} color={colors.primary} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Gerenciamento de Itens</Text>
                     <View style={styles.profileIcon}>
-                        <Text style={styles.profileEmoji}>👤</Text>
+                        <Ionicons name="person-circle-outline" size={20} color={colors.primary} />
                     </View>
                 </View>
             </View>
@@ -142,7 +143,7 @@ const ItemListScreen = ({ navigation }) => {
                         {/* Search Bar */}
                         <View style={styles.searchContainer}>
                             <View style={styles.searchWrapper}>
-                                <Text style={styles.searchIcon}>🔍</Text>
+                                <Ionicons name="search-outline" size={20} color={colors.secondary} style={{ marginRight: 10 }} />
                                 <TextInput
                                     style={styles.searchInput}
                                     placeholder="Buscar por nome, SKU ou categoria..."
@@ -174,7 +175,7 @@ const ItemListScreen = ({ navigation }) => {
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyEmoji}>🔎</Text>
+                        <Ionicons name="search-outline" size={60} color={colors.secondary} opacity={0.3} style={{ marginBottom: 16 }} />
                         <Text style={styles.emptyText}>
                             {searchQuery ? 'Nenhum item corresponde à busca.' : 'Nenhum item cadastrado ainda.'}
                         </Text>
@@ -194,7 +195,7 @@ const ItemListScreen = ({ navigation }) => {
                     colors={[colors.primary, colors.primaryVariant]}
                     style={styles.fabGradient}
                 >
-                    <Text style={styles.fabIcon}>+</Text>
+                    <Ionicons name="add" size={32} color="#fff" />
                 </LinearGradient>
             </TouchableOpacity>
         </SafeAreaView>

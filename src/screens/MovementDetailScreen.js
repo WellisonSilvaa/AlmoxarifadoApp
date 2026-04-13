@@ -15,6 +15,7 @@ import { globalStyles, colors, typography } from '../styles/global';
 import { getMovementById } from '../services/movementService';
 import LicensePlate from '../components/LicensePlate';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
 
 const { width } = Dimensions.get('window');
 
@@ -50,7 +51,7 @@ const MovementDetailScreen = ({ route, navigation }) => {
     return {
       color: isEntry ? '#15803d' : colors.error,
       bg: isEntry ? '#f0fdf4' : '#fef2f2',
-      icon: isEntry ? '📥' : '📤',
+      icon: isEntry ? 'arrow-down-circle-outline' : 'arrow-up-circle-outline',
       label: isEntry ? 'ENTRADA' : 'SAÍDA'
     };
   }, [movement]);
@@ -72,7 +73,7 @@ const MovementDetailScreen = ({ route, navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={{ fontSize: 20 }}>←</Text>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalhes do Fluxo</Text>
           <View style={styles.profileIcon} />
@@ -82,7 +83,7 @@ const MovementDetailScreen = ({ route, navigation }) => {
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {/* Hero Type Card */}
         <View style={[styles.heroCard, { backgroundColor: styleConfig.bg }]}>
-          <Text style={styles.heroIcon}>{styleConfig.icon}</Text>
+          <Ionicons name={styleConfig.icon} size={40} color={styleConfig.color} />
           <View>
             <Text style={[styles.heroLabel, { color: styleConfig.color }]}>{styleConfig.label}</Text>
             <Text style={styles.heroId}>#{movement.id.substring(0, 8)}</Text>
@@ -110,7 +111,7 @@ const MovementDetailScreen = ({ route, navigation }) => {
           <Text style={styles.sectionTitle}>Produto</Text>
           <View style={styles.itemCard}>
             <View style={styles.itemIcon}>
-              <Text style={{ fontSize: 20 }}>📦</Text>
+              <MaterialCommunityIcons name="package-variant-closed" size={24} color={colors.secondary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName}>{movement.itemName}</Text>
@@ -142,8 +143,8 @@ const MovementDetailScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.opRow}>
               <Text style={styles.opLabel}>Estado:</Text>
-              <Text style={[styles.opValue, { color: movement.isActive ? '#15803d' : colors.error }]}>
-                {movement.isActive ? 'Confirmada' : 'Inativada'}
+              <Text style={[styles.opValue, { color: '#15803d' }]}>
+                Consolidada
               </Text>
             </View>
           </View>

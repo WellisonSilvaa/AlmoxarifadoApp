@@ -17,6 +17,7 @@ import {
 import { colors, typography } from '../styles/global';
 import { createMovement } from '../services/movementService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
 import SearchableSelector from '../components/SearchableSelector';
 import { useData } from '../context/DataContext';
 
@@ -103,7 +104,7 @@ const MovementScreen = ({ navigation }) => {
       
       <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={{ fontSize: 20 }}>←</Text>
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registrar Fluxo</Text>
           <View style={{ width: 40 }} />
@@ -112,7 +113,9 @@ const MovementScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Responsible Bar */}
         <View style={styles.responsibleBar}>
-          <View style={styles.userIcon}><Text style={{fontSize: 10}}>👤</Text></View>
+          <View style={styles.userIcon}>
+              <Ionicons name="person-outline" size={12} color={colors.primary} />
+          </View>
           <Text style={styles.responsibleText}>{responsible}</Text>
         </View>
 
@@ -143,7 +146,7 @@ const MovementScreen = ({ navigation }) => {
               <Text style={[styles.selectorButtonText, selectedItem && styles.selectorButtonTextActive]}>
                 {selectedItem ? items.find(i => i.id === selectedItem)?.name : 'Selecionar Produto...'}
               </Text>
-              <Text style={styles.selectorIcon}>🔍</Text>
+              <Ionicons name="search-outline" size={20} color={colors.secondary} />
             </TouchableOpacity>
           </View>
 
@@ -184,7 +187,7 @@ const MovementScreen = ({ navigation }) => {
                 <Text style={[styles.selectorButtonText, selectedTruck && styles.selectorButtonTextActive]}>
                   {selectedTruck ? trucks.find(t => t.id === selectedTruck)?.plate : 'Selecionar Carreta...'}
                 </Text>
-                <Text style={styles.selectorIcon}>🚛</Text>
+                <MaterialCommunityIcons name="truck-delivery-outline" size={24} color={colors.secondary} />
               </TouchableOpacity>
             </View>
           )}

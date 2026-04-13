@@ -19,6 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography } from '../styles/global';
 import LicensePlate from '../components/LicensePlate';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons'; // 👈 Adicionado Ionicons
 import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -65,7 +66,11 @@ const MovementListScreen = ({ navigation }) => {
           styles.typeIcon, 
           { backgroundColor: item.type === 'entry' ? '#f0fdf4' : '#fff1f2' }
         ]}>
-          <Text style={styles.emojiText}>{item.type === 'entry' ? '📥' : '📤'}</Text>
+          <Ionicons 
+            name={item.type === 'entry' ? "arrow-down-circle-outline" : "arrow-up-circle-outline"} 
+            size={24} 
+            color={item.type === 'entry' ? "#15803d" : colors.error} 
+          />
         </View>
         
         <View style={styles.cardInfo}>
@@ -103,11 +108,11 @@ const MovementListScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIconText}>←</Text>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Histórico de Fluxo</Text>
           <View style={styles.profileIcon}>
-            <Text style={styles.profileEmoji}>👤</Text>
+            <Ionicons name="person-circle-outline" size={20} color={colors.primary} />
           </View>
         </View>
       </View>
@@ -164,7 +169,7 @@ const MovementListScreen = ({ navigation }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>📋</Text>
+            <Ionicons name="list-outline" size={60} color={colors.secondary} opacity={0.3} style={{ marginBottom: 16 }} />
             <Text style={styles.emptyTitle}>Sem registros</Text>
             <Text style={styles.emptySubtitle}>
               Nenhuma movimentação encontrada para o filtro selecionado.

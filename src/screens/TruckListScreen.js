@@ -17,7 +17,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography } from '../styles/global';
 import { LinearGradient } from 'expo-linear-gradient';
 import LicensePlate from '../components/LicensePlate';
-import { useData } from '../context/DataContext'; // 👈 Importando useData
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
+import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
 
@@ -72,15 +73,15 @@ const TruckListScreen = ({ navigation }) => {
       
       <View style={styles.specsGrid}>
         <View style={styles.specItem}>
-          <Text style={styles.specIcon}>📅</Text>
+          <Ionicons name="calendar-outline" size={16} color={colors.secondary} />
           <Text style={styles.specLabel}>{item.year || '--'}</Text>
         </View>
         <View style={styles.specItem}>
-          <Text style={styles.specIcon}>⚖️</Text>
+          <Ionicons name="scale-outline" size={16} color={colors.secondary} />
           <Text style={styles.specLabel}>{item.capacity || 'N/A'}</Text>
         </View>
         <View style={styles.specItem}>
-          <Text style={styles.specIcon}>📦</Text>
+          <MaterialCommunityIcons name="package-variant-closed" size={16} color={colors.secondary} />
           <Text style={styles.specLabel}>Vazia</Text>
         </View>
       </View>
@@ -110,11 +111,11 @@ const TruckListScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIconText}>←</Text>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Gestão de Frota</Text>
           <View style={styles.profileIcon}>
-            <Text style={styles.profileEmoji}>👤</Text>
+            <Ionicons name="person-circle-outline" size={20} color={colors.primary} />
           </View>
         </View>
       </View>
@@ -134,7 +135,7 @@ const TruckListScreen = ({ navigation }) => {
           <View>
             <View style={styles.searchContainer}>
               <View style={styles.searchWrapper}>
-                <Text style={styles.searchIcon}>🔍</Text>
+                <Ionicons name="search-outline" size={20} color={colors.secondary} style={{ marginRight: 10 }} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Buscar por placa ou modelo..."
@@ -161,7 +162,7 @@ const TruckListScreen = ({ navigation }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🚚</Text>
+            <MaterialCommunityIcons name="truck-delivery-outline" size={60} color={colors.secondary} opacity={0.3} style={{ marginBottom: 16 }} />
             <Text style={styles.emptyText}>
               {searchQuery ? 'Nenhuma carreta corresponde à busca.' : 'Nenhuma carreta cadastrada ainda.'}
             </Text>
@@ -180,7 +181,7 @@ const TruckListScreen = ({ navigation }) => {
           colors={[colors.primary, colors.primaryVariant]}
           style={styles.fabGradient}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          <Ionicons name="add" size={32} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons'; // 👈 Adicionado Ionicons
 import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -84,11 +85,11 @@ const StockReportScreen = ({ navigation }) => {
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Relatório de Estoque</Text>
         <TouchableOpacity onPress={() => refreshData()} style={styles.refreshButton}>
-          <Text style={styles.refreshIcon}>🔄</Text>
+          <Ionicons name="sync-outline" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
 

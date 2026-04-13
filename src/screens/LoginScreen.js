@@ -16,6 +16,7 @@ import {
 import { globalStyles, colors, typography } from '../styles/global';
 import { loginUser, onAuthStateChanged } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons'; // 👈 Adicionado Ionicons
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -28,7 +29,7 @@ const LoginScreen = ({ navigation }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged((user) => {
       if (user) {
-        console.log("Usuário logadooooooooo: " + user.email);
+        console.log("Usuário logado: " + (user.email || 'UID: ' + user.id));
         navigation.replace('Home');
       }
       setCheckingAuth(false);
@@ -88,7 +89,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.heroContent}>
             <View style={styles.logoContainer}>
               <View style={styles.logoBox}>
-                <Text style={{ fontSize: 24 }}>📦</Text>
+                <Ionicons name="cube" size={24} color={colors.primary} />
               </View>
               <Text style={styles.logoText}>Almoxarifado Pro</Text>
             </View>
@@ -113,7 +114,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>E-MAIL CORPORATIVO</Text>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>📧</Text>
+              <Ionicons name="mail-outline" size={20} color={colors.secondary} style={{ marginRight: 12 }} />
               <TextInput
                 style={styles.input}
                 placeholder="exemplo@empresa.com.br"
@@ -135,7 +136,7 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🔒</Text>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.secondary} style={{ marginRight: 12 }} />
               <TextInput
                 style={styles.input}
                 placeholder="••••••••"
@@ -146,7 +147,11 @@ const LoginScreen = ({ navigation }) => {
                 editable={!loading}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Text>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                <Ionicons 
+                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                  size={22} 
+                  color={colors.secondary} 
+                />
               </TouchableOpacity>
             </View>
           </View>

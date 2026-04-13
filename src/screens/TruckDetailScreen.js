@@ -20,6 +20,7 @@ import { getTruckById, deleteTruck } from '../services/truckService';
 import { getImageUrl } from '../utils/storageUtils';
 import LicensePlate from '../components/LicensePlate';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
 import { useFocusEffect } from '@react-navigation/native';
 import { useData } from '../context/DataContext';
 
@@ -104,7 +105,7 @@ const TruckDetailScreen = ({ route, navigation }) => {
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderImage]}>
-              <Text style={styles.placeholderEmoji}>🚚</Text>
+              <MaterialCommunityIcons name="truck-delivery-outline" size={80} color={colors.secondary} opacity={0.3} />
             </View>
           )}
           <LinearGradient
@@ -116,7 +117,7 @@ const TruckDetailScreen = ({ route, navigation }) => {
                 style={styles.backButton} 
                 onPress={() => navigation.goBack()}
             >
-                <Text style={styles.backButtonText}>←</Text>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
           </SafeAreaView>
         </View>

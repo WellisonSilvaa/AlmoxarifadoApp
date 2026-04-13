@@ -16,12 +16,15 @@ import {
 import { colors, typography } from '../styles/global';
 import { registerUser, checkIsAdmin } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons'; // 👈 Adicionado Ionicons
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingPermission, setCheckingPermission] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -99,7 +102,7 @@ const RegisterScreen = ({ navigation }) => {
   if (!isAdmin) {
     return (
       <View style={styles.deniedContainer}>
-        <Text style={styles.deniedIcon}>🔒</Text>
+        <Ionicons name="lock-closed-outline" size={60} color={colors.primary} style={{ marginBottom: 20 }} />
         <Text style={styles.deniedTitle}>Acesso Negado</Text>
         <Text style={styles.deniedText}>Apenas administradores de alto nível podem gerenciar contas administrativas.</Text>
         <TouchableOpacity style={styles.deniedButton} onPress={() => navigation.goBack()}>
@@ -115,7 +118,7 @@ const RegisterScreen = ({ navigation }) => {
       
       <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={{ fontSize: 20 }}>←</Text>
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Novo Administrador</Text>
           <View style={{ width: 40 }} />
@@ -154,28 +157,38 @@ const RegisterScreen = ({ navigation }) => {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Senha Temporária</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={colors.gray}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, { paddingRight: 50 }]}
+                placeholder="••••••••"
+                placeholderTextColor={colors.gray}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color={colors.secondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirmar Senha</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={colors.gray}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              editable={!loading}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.input, { paddingRight: 50 }]}
+                placeholder="••••••••"
+                placeholderTextColor={colors.gray}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                editable={!loading}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={22} color={colors.secondary} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -245,8 +258,9 @@ const styles = StyleSheet.create({
   buttonText: { ...typography.label, fontSize: 16, color: '#fff' },
   cancelButton: { height: 56, justifyContent: 'center', alignItems: 'center' },
   cancelText: { ...typography.label, color: colors.secondary, fontSize: 16 },
+  passwordContainer: { position: 'relative', justifyContent: 'center' },
+  eyeIcon: { position: 'absolute', right: 0, paddingHorizontal: 16, height: '100%', justifyContent: 'center', alignItems: 'center' },
   deniedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, backgroundColor: colors.background },
-  deniedIcon: { fontSize: 60, marginBottom: 20 },
   deniedTitle: { ...typography.headline, fontSize: 24, color: colors.onSurface, marginBottom: 12 },
   deniedText: { ...typography.body, textAlign: 'center', color: colors.secondary, marginBottom: 32, lineHeight: 22 },
   deniedButton: { backgroundColor: colors.primary, paddingHorizontal: 32, paddingVertical: 16, borderRadius: 28 },

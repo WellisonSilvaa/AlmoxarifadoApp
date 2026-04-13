@@ -19,6 +19,7 @@ import { getItemById, deleteItem } from '../services/itemService';
 import { getImageUrl } from '../utils/storageUtils';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado ícones
 import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -107,7 +108,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
             />
           ) : (
             <View style={[styles.heroImage, styles.placeholderImage]}>
-              <Text style={{ fontSize: 60 }}>📦</Text>
+              <MaterialCommunityIcons name="package-variant-closed" size={80} color={colors.secondary} opacity={0.3} />
             </View>
           )}
           <LinearGradient
@@ -118,7 +119,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
             style={styles.backButton} 
             onPress={() => navigation.goBack()}
           >
-            <Text style={{ color: '#fff', fontSize: 20 }}>←</Text>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
         </View>
 

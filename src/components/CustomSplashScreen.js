@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Image, Dimensions, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import CargoAnimation from './CargoAnimation';
 
 const { width } = Dimensions.get('window');
 
@@ -41,21 +42,9 @@ const CustomSplashScreen = ({ progress = 0, statusMessage = "Inicializando Siste
       />
 
       <View style={styles.centerContent}>
-        {/* Logo Container */}
-        <View style={styles.logoWrapper}>
-          <View style={styles.logoShadow} />
-          <View style={styles.logoCard}>
-            <Image 
-              source={require('../../assets/icon.png')} 
-              style={styles.logoIcon}
-              resizeMode="contain"
-            />
-            {/* Small accent square */}
-            <LinearGradient
-              colors={['#b90014', '#e31b23']}
-              style={styles.logoAccent}
-            />
-          </View>
+        {/* Animation Container */}
+        <View style={styles.animationWrapper}>
+          <CargoAnimation />
         </View>
 
         {/* Brand Typography */}
@@ -122,47 +111,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
-  logoWrapper: {
-    position: 'relative',
-    marginBottom: 40,
-  },
-  logoShadow: {
-    position: 'absolute',
-    top: 24,
-    width: 120,
-    height: 120,
-    backgroundColor: 'rgba(185, 0, 20, 0.15)',
-    borderRadius: 18,
-    blurRadius: 48,
-  },
-  logoCard: {
-    width: 128,
-    height: 128,
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
+  animationWrapper: {
+    marginBottom: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(231, 189, 184, 0.2)',
-    elevation: 10,
-    shadowColor: '#b90014',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-  },
-  logoIcon: {
-    width: 80,
-    height: 80,
-  },
-  logoAccent: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 4,
-    borderColor: '#ffffff',
+    height: 140, // Espaço dedicado para a carreta e caixa
   },
   textContainer: {
     alignItems: 'center',

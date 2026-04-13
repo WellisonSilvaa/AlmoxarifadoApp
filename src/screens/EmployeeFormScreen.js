@@ -18,7 +18,8 @@ import { colors, typography } from '../styles/global';
 import { createEmployee } from '../services/employeeService';
 import { registerEmployee } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useData } from '../context/DataContext'; // 👈 Importando useData
+import { Ionicons } from '@expo/vector-icons'; // 👈 Adicionado Ionicons
+import { useData } from '../context/DataContext'; 
 
 const EmployeeFormScreen = ({ navigation }) => {
   const { refreshData } = useData(); // 👈 Consumindo refreshData
@@ -26,6 +27,8 @@ const EmployeeFormScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [department, setDepartment] = useState('');
   const [position, setPosition] = useState('');
   const [loading, setLoading] = useState(false);
@@ -121,11 +124,41 @@ const EmployeeFormScreen = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Segurança e Acesso</Text>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Senha de Acesso *</Text>
-            <TextInput style={styles.input} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
+            <View style={styles.passwordContainer}>
+              <TextInput 
+                style={[styles.input, { paddingRight: 50 }]} 
+                placeholder="••••••••" 
+                value={password} 
+                onChangeText={setPassword} 
+                secureTextEntry={!showPassword} 
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <Ionicons 
+                  name={showPassword ? "eye-outline" : "eye-off-outline"} 
+                  size={24} 
+                  color={colors.secondary} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirmar Senha *</Text>
-            <TextInput style={styles.input} placeholder="••••••••" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+            <View style={styles.passwordContainer}>
+              <TextInput 
+                style={[styles.input, { paddingRight: 50 }]} 
+                placeholder="••••••••" 
+                value={confirmPassword} 
+                onChangeText={setConfirmPassword} 
+                secureTextEntry={!showConfirmPassword} 
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
+                  size={24} 
+                  color={colors.secondary} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -174,6 +207,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     ...typography.body,
+  },
+  passwordContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 0,
+    paddingHorizontal: 16,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footer: { gap: 12 },
   gradientButton: { height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },

@@ -94,3 +94,34 @@ export const getMovementsByItem = async (itemId) => {
     return { success: false, error: "Erro ao buscar histórico." };
   }
 };
+
+// Buscar por ID
+export const getMovementById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    return { 
+      success: true, 
+      data: {
+        ...data,
+        id: data.id,
+        itemId: data.item_id,
+        itemName: data.item_name,
+        employeeId: data.employee_id,
+        employeeName: data.employee_name,
+        responsible: data.employee_name, // Map para compatibilidade
+        truckPlate: data.truck_plate,
+        date: new Date(data.date)
+      }
+    };
+  } catch (error) {
+    console.error("Erro ao buscar movimentação no Supabase:", error);
+    return { success: false, error: "Erro ao carregar os detalhes da movimentação." };
+  }
+};

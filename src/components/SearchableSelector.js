@@ -7,9 +7,10 @@ import {
   Modal,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, typography } from '../styles/global';
 
 const SearchableSelector = ({ 
@@ -49,7 +50,7 @@ const SearchableSelector = ({
           </View>
 
           <View style={styles.searchContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons name="search-outline" size={20} color={colors.secondary} style={{ marginRight: 10 }} />
             <TextInput
               style={styles.searchInput}
               placeholder={placeholder || 'Buscar...'}
@@ -59,7 +60,7 @@ const SearchableSelector = ({
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <Text style={styles.clearIcon}>✕</Text>
+                <Ionicons name="close-circle" size={20} color={colors.secondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -82,7 +83,7 @@ const SearchableSelector = ({
                     <Text style={styles.itemSubLabel}>{item[itemSubLabelKey]}</Text>
                   )}
                 </View>
-                <Text style={styles.selectArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.primary + '80'} />
               </TouchableOpacity>
             )}
             ListEmptyComponent={

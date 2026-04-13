@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, typography } from '../styles/global';
 import { logoutUser } from '../services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'; // 👈 Adicionado MaterialCommunityIcons
 import { useData } from '../context/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -71,7 +72,7 @@ const HomeScreen = ({ navigation }) => {
 
   const getUserDisplayName = () => {
       if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
-      if (user?.email) return user.email.split('@')[0].toUpperCase();
+      // if (user?.email) return user.email.split('@')[0].toUpperCase();
       return 'USUÁRIO';
   };
 
@@ -86,14 +87,14 @@ const HomeScreen = ({ navigation }) => {
             style={styles.menuButton}
             onPress={() => Alert.alert('Menu', 'Funcionalidade em desenvolvimento.')}
           >
-            <Text style={styles.menuIconText}>☰</Text>
+            <Ionicons name="menu-outline" size={24} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.brandText}>Almoxarifado Pro</Text>
         </View>
         <View style={styles.topBarRight}>
           <TouchableOpacity onPress={handleLogout}>
             <View style={styles.profileIcon}>
-              <Text style={styles.profileIconText}>👤</Text>
+              <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
             </View>
           </TouchableOpacity>
         </View>
@@ -120,7 +121,7 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.heroLabel}>Bem Vindo, {getUserDisplayName()}</Text>
               <Text style={styles.heroTitle}>Visão Geral das{"\n"}Operações</Text>
               <Text style={styles.heroSubtitle}>
-                Monitore o estoque e a logística em tempo real via Supabase.
+                Monitore o estoque e a logística em tempo real.
               </Text>
             </View>
             <View style={styles.heroDeco} />
@@ -135,7 +136,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('ItemList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#e7f0ff' }]}>
-                <Text style={styles.iconEmoji}>📦</Text>
+                <MaterialCommunityIcons name="package-variant-closed" size={22} color="#0056d2" />
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Itens em Estoque</Text>
@@ -148,7 +149,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('TruckList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#fff0f0' }]}>
-                <Text style={styles.iconEmoji}>🚚</Text>
+                <MaterialCommunityIcons name="truck-delivery-outline" size={22} color="#d32f2f" />
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Carretas Ativas</Text>
@@ -163,7 +164,7 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('MovementList')}
             >
               <View style={[styles.iconBox, { backgroundColor: '#fff7ed' }]}>
-                <Text style={styles.iconEmoji}>🔄</Text>
+                <Ionicons name="sync-outline" size={20} color="#ed8936" />
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Movimentações</Text>
@@ -176,7 +177,11 @@ const HomeScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('StockReport')}
             >
               <View style={[styles.iconBox, { backgroundColor: stats.lowStockCount > 0 ? '#fef2f2' : '#f8f9fa' }]}>
-                <Text style={styles.iconEmoji}>⚠️</Text>
+                <Ionicons 
+                  name="warning-outline" 
+                  size={20} 
+                  color={stats.lowStockCount > 0 ? colors.error : colors.secondary} 
+                />
               </View>
               <View style={styles.bentoContent}>
                 <Text style={styles.bentoLabel}>Estoque Baixo</Text>
@@ -247,7 +252,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('ItemForm')}
           >
             <View style={styles.quickActionIcon}>
-              <Text style={styles.actionEmoji}>➕</Text>
+              <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.quickActionLabel}>Novo Item</Text>
           </TouchableOpacity>
@@ -256,7 +261,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Movements')}
           >
             <View style={styles.quickActionIcon}>
-              <Text style={styles.actionEmoji}>🔄</Text>
+              <Ionicons name="repeat-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.quickActionLabel}>Movimentar</Text>
           </TouchableOpacity>
@@ -265,7 +270,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('TruckForm')}
           >
             <View style={styles.quickActionIcon}>
-              <Text style={styles.actionEmoji}>🚚</Text>
+              <MaterialCommunityIcons name="truck-plus-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.quickActionLabel}>Nova Carreta</Text>
           </TouchableOpacity>
@@ -274,7 +279,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('StockReport')}
           >
             <View style={styles.quickActionIcon}>
-              <Text style={styles.actionEmoji}>📊</Text>
+              <Ionicons name="bar-chart-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.quickActionLabel}>Relatório</Text>
           </TouchableOpacity>
@@ -283,7 +288,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('EmployeeForm')}
           >
             <View style={styles.quickActionIcon}>
-              <Text style={styles.actionEmoji}>👤</Text>
+              <Ionicons name="person-add-outline" size={24} color={colors.primary} />
             </View>
             <Text style={styles.quickActionLabel}>Novo Funcionário</Text>
           </TouchableOpacity>
@@ -295,7 +300,7 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => navigation.navigate('Register')}
           >
             <Text style={styles.adminBannerText}>Gerenciar Administradores</Text>
-            <Text style={styles.adminBannerIcon}>🛡️</Text>
+            <Ionicons name="shield-checkmark-outline" size={20} color="#fff" />
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -312,7 +317,7 @@ const HomeScreen = ({ navigation }) => {
           colors={[colors.primary, colors.primaryVariant]}
           style={styles.fabGradient}
         >
-          <Text style={styles.fabIcon}>⇅</Text>
+          <Ionicons name="swap-vertical" size={28} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>
