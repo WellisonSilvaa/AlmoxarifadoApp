@@ -131,9 +131,9 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>SENHA</Text>
-              <TouchableOpacity>
+              {/* <TouchableOpacity>
                 <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             <View style={styles.inputWrapper}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.secondary} style={{ marginRight: 12 }} />

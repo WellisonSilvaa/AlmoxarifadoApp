@@ -15,11 +15,13 @@ import {
   Platform,
   KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
 import { createTruck, updateTruck, getTruckById } from '../services/truckService';
 import { uploadImage } from '../utils/storageUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
 
 const TruckFormScreen = ({ route, navigation }) => {
@@ -189,16 +191,17 @@ const TruckFormScreen = ({ route, navigation }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={{ fontSize: 20 }}>←</Text>
+            <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{isEditing ? 'Editar Carreta' : 'Nova Carreta'}</Text>
           <View style={{ width: 40 }} />
@@ -321,6 +324,7 @@ const TruckFormScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -331,8 +335,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
-    height: 85,
   },
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, height: 60 },
   backButton: { padding: 8 },

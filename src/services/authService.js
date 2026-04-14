@@ -161,14 +161,28 @@ export const onAuthStateChanged = (callback) => {
 export const isAdmin = async (userId) => {
   try {
     if (!userId) return false;
-    const { data, error } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, employee_id')
       .eq('id', userId)
       .single();
     
     if (error) return false;
-    return data.role === 'admin';
+    if (profile?.role?.toLowerCase() === 'admin') return true;
+
+    // Conceder status de admin se o cargo associado for "Admin"
+    if (profile?.employee_id) {
+      const { data: employee } = await supabase
+        .from('employees')
+        .select('position')
+        .eq('id', profile.employee_id)
+        .single();
+      
+      const pos = (employee?.position || '').toLowerCase();
+      if (pos.includes('admin') || pos.includes('administrador')) return true;
+    }
+
+    return false;
   } catch (error) {
     return false;
   }

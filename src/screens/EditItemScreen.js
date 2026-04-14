@@ -16,11 +16,13 @@ import {
   Platform,
   KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
 import { getItemById, updateItem } from '../services/itemService';
 import { uploadImage } from '../utils/storageUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../context/DataContext';
 
 const EditItemScreen = ({ route, navigation }) => {
@@ -143,12 +145,13 @@ const EditItemScreen = ({ route, navigation }) => {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={{ fontSize: 20 }}>←</Text>
+              <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar Produto</Text>
           <View style={{ width: 40 }} />
@@ -225,6 +228,7 @@ const EditItemScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -236,11 +240,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 20, 
-    height: 85, 
+    height: 60, 
     backgroundColor: '#fff', 
     borderBottomWidth: 1, 
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
   },
   headerTitle: { ...typography.headline, fontSize: 18, color: colors.primary },
   backButton: { padding: 8 },

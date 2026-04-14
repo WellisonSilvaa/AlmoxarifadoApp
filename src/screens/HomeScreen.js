@@ -12,7 +12,8 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // 👈 Adicionado useSafeAreaInsets
 import { colors, typography } from '../styles/global';
@@ -85,16 +86,22 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.topBarLeft}>
           <TouchableOpacity 
             style={styles.menuButton}
-            onPress={() => Alert.alert('Menu', 'Funcionalidade em desenvolvimento.')}
+            onPress={() => Alert.alert('Informação', 'Almoxarifado App v1.0.0')}
           >
-            <Ionicons name="menu-outline" size={24} color={colors.primary} />
+            <Image 
+              source={require('../../assets/icon.png')} 
+              style={{ width: 40, height: 40, transform: [{ scale: 3.0 }] }}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
+        </View>
+        <View>
           <Text style={styles.brandText}>Almoxarifado Pro</Text>
         </View>
         <View style={styles.topBarRight}>
           <TouchableOpacity onPress={handleLogout}>
             <View style={styles.profileIcon}>
-              <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
+              <Ionicons name="log-out-outline" size={22} color={colors.primary} />
             </View>
           </TouchableOpacity>
         </View>
@@ -213,7 +220,11 @@ const HomeScreen = ({ navigation }) => {
                   styles.movementIcon, 
                   { backgroundColor: item.type === 'entry' ? '#f0fdf4' : '#fef2f2' }
                 ]}>
-                  <Text style={styles.typeIcon}>{item.type === 'entry' ? '📥' : '📤'}</Text>
+                  <Ionicons 
+                    name={item.type === 'entry' ? 'arrow-down' : 'arrow-up'} 
+                    size={20} 
+                    color={item.type === 'entry' ? '#15803d' : '#b91c1c'} 
+                  />
                 </View>
                 <View style={styles.movementInfo}>
                   <Text style={styles.movementName} numberOfLines={1}>
@@ -283,24 +294,26 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <Text style={styles.quickActionLabel}>Relatório</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.quickAction}
-            onPress={() => navigation.navigate('EmployeeForm')}
-          >
-            <View style={styles.quickActionIcon}>
-              <Ionicons name="person-add-outline" size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.quickActionLabel}>Novo Funcionário</Text>
-          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity 
+              style={styles.quickAction}
+              onPress={() => navigation.navigate('EmployeeForm')}
+            >
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="person-add-outline" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.quickActionLabel}>Novo Funcionário</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {isAdmin && (
           <TouchableOpacity 
             style={styles.adminBanner}
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigation.navigate('EmployeeManagement')}
           >
-            <Text style={styles.adminBannerText}>Gerenciar Administradores</Text>
-            <Ionicons name="shield-checkmark-outline" size={20} color="#fff" />
+            <Text style={styles.adminBannerText}>Gerenciar Equipe e Acessos</Text>
+            <Ionicons name="people-circle-outline" size={24} color="#fff" />
           </TouchableOpacity>
         )}
       </ScrollView>

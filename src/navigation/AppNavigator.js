@@ -6,7 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 // Import das telas
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import EmployeeManagementScreen from '../screens/EmployeeManagementScreen';
 import FirstTimeSetupScreen from '../screens/FirstTimeSetupScreen';
 import EmployeeFormScreen from '../screens/EmployeeFormScreen';
 import ItemFormScreen from '../screens/ItemFormScreen';
@@ -32,7 +32,7 @@ const AppNavigator = () => {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="EmployeeManagement" component={EmployeeManagementScreen} />
         <Stack.Screen name="FirstTimeSetup" component={FirstTimeSetupScreen} />
         <Stack.Screen name="EmployeeForm" component={EmployeeFormScreen} />
         <Stack.Screen name="ItemForm" component={ItemFormScreen} />

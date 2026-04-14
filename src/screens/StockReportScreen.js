@@ -85,7 +85,7 @@ const StockReportScreen = ({ navigation }) => {
       
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Relatório de Estoque</Text>
         <TouchableOpacity onPress={() => refreshData()} style={styles.refreshButton}>

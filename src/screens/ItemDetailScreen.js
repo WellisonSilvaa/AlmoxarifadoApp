@@ -14,6 +14,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { globalStyles, colors, typography } from '../styles/global';
 import { getItemById, deleteItem } from '../services/itemService';
 import { getImageUrl } from '../utils/storageUtils';
@@ -25,6 +26,7 @@ import { useData } from '../context/DataContext';
 const { width } = Dimensions.get('window');
 
 const ItemDetailScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { itemId } = route.params;
   const { refreshData, removeItemFromState } = useData(); // 💡 Importando utilitário
   const [item, setItem] = useState(null);
@@ -116,10 +118,10 @@ const ItemDetailScreen = ({ route, navigation }) => {
             style={styles.heroGradient}
           />
           <TouchableOpacity 
-            style={styles.backButton} 
+            style={[styles.backButton, { top: insets.top || 20 }]} 
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="chevron-back-outline" size={28} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -221,7 +223,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 25,
     left: 20,
     width: 44,
     height: 44,

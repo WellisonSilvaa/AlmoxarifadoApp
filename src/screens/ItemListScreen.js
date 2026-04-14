@@ -118,7 +118,7 @@ const ItemListScreen = ({ navigation }) => {
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={colors.primary} />
+                        <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Gerenciamento de Itens</Text>
                     <View style={styles.profileIcon}>

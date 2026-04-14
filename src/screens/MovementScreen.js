@@ -14,6 +14,7 @@ import {
   Platform,
   KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
 import { createMovement } from '../services/movementService';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,7 +64,7 @@ const MovementScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const item = items.find(i => i.id === selectedItem);
-      let truck = movementType === 'exit' ? trucks.find(t => t.id === selectedTruck) : null;
+      let truck = selectedTruck ? trucks.find(t => t.id === selectedTruck) : null;
 
       const result = await createMovement({
         type: movementType,
@@ -96,15 +97,16 @@ const MovementScreen = ({ navigation }) => {
   const [truckModalVisible, setTruckModalVisible] = useState(false);
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.primary} />
+              <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registrar Fluxo</Text>
           <View style={{ width: 40 }} />
@@ -176,21 +178,21 @@ const MovementScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* Truck Selector (Exit only) */}
-          {movementType === 'exit' && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Destino (Carreta) *</Text>
-              <TouchableOpacity 
-                style={[styles.selectorButton, selectedTruck && styles.selectorButtonActive]}
-                onPress={() => setTruckModalVisible(true)}
-              >
-                <Text style={[styles.selectorButtonText, selectedTruck && styles.selectorButtonTextActive]}>
-                  {selectedTruck ? trucks.find(t => t.id === selectedTruck)?.plate : 'Selecionar Carreta...'}
-                </Text>
-                <MaterialCommunityIcons name="truck-delivery-outline" size={24} color={colors.secondary} />
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Truck Selector */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {movementType === 'exit' ? 'Destino (Carreta) *' : 'Origem (Carreta) - Opcional'}
+            </Text>
+            <TouchableOpacity 
+              style={[styles.selectorButton, selectedTruck && styles.selectorButtonActive]}
+              onPress={() => setTruckModalVisible(true)}
+            >
+              <Text style={[styles.selectorButtonText, selectedTruck && styles.selectorButtonTextActive]}>
+                {selectedTruck ? trucks.find(t => t.id === selectedTruck)?.plate : 'Selecionar Carreta...'}
+              </Text>
+              <MaterialCommunityIcons name="truck-delivery-outline" size={24} color={colors.secondary} />
+            </TouchableOpacity>
+          </View>
 
           {/* Notes */}
           <View style={styles.inputGroup}>
@@ -243,6 +245,7 @@ const MovementScreen = ({ navigation }) => {
         itemSubLabelKey="brand"
       />
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -254,11 +257,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    height: 80,
+    height: 60,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
   },
   headerTitle: { ...typography.headline, fontSize: 18, color: colors.primary },
   backButton: { padding: 8 },

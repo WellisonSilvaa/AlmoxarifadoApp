@@ -11,6 +11,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { globalStyles, colors, typography } from '../styles/global';
 import { getMovementById } from '../services/movementService';
 import LicensePlate from '../components/LicensePlate';
@@ -67,13 +68,13 @@ const MovementDetailScreen = ({ route, navigation }) => {
   if (!movement) return null;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+            <Ionicons name="chevron-back-outline" size={28} color={colors.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Detalhes do Fluxo</Text>
           <View style={styles.profileIcon} />
@@ -121,11 +122,13 @@ const MovementDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Logistics Section */}
-        {movement.type === 'exit' && movement.truckPlate && (
+        {movement.truckPlate && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Logística</Text>
             <View style={styles.logisticsCard}>
-              <Text style={styles.logisticsLabel}>Destino / Carreta</Text>
+              <Text style={styles.logisticsLabel}>
+                {movement.type === 'exit' ? 'Destino / Carreta' : 'Origem / Carreta'}
+              </Text>
               <View style={styles.plateWrapper}>
                 <LicensePlate plate={movement.truckPlate} size="small" />
               </View>
@@ -182,7 +185,7 @@ const MovementDetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -195,8 +198,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.surfaceVariant,
-    paddingTop: 25,
-    height: 85,
   },
   headerTop: {
     flexDirection: 'row',

@@ -14,7 +14,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography } from '../styles/global';
 import { getTruckById, deleteTruck } from '../services/truckService';
 import { getImageUrl } from '../utils/storageUtils';
@@ -27,6 +27,7 @@ import { useData } from '../context/DataContext';
 const { width } = Dimensions.get('window');
 
 const TruckDetailScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { truckId } = route.params;
   const { refreshData, removeTruckFromState } = useData(); // 💡 Importando utilitário
   const [truck, setTruck] = useState(null);
@@ -112,14 +113,14 @@ const TruckDetailScreen = ({ route, navigation }) => {
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.heroGradient}
           />
-          <SafeAreaView edges={['top']} style={styles.safeHeader}>
+          <View style={[styles.backButtonWrapper, { top: insets.top || 10 }]}>
             <TouchableOpacity 
                 style={styles.backButton} 
                 onPress={() => navigation.goBack()}
             >
-                <Ionicons name="arrow-back" size={24} color="#fff" />
+                <Ionicons name="chevron-back-outline" size={28} color="#fff" />
             </TouchableOpacity>
-          </SafeAreaView>
+          </View>
         </View>
 
         <View style={styles.content}>
@@ -231,14 +232,13 @@ const styles = StyleSheet.create({
     right: 0,
     height: 120,
   },
-  safeHeader: {
+  backButtonWrapper: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
+    zIndex: 10,
   },
   backButton: {
-    marginTop: Platform.OS === 'android' ? 10 : 0,
     marginLeft: 20,
     width: 44,
     height: 44,
